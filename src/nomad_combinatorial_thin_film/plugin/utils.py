@@ -1,74 +1,82 @@
 from nomad.datamodel.metainfo.plot import PlotlyFigure
 
+from nomad_combinatorial_thin_film.constants import (
+    CHANNEL_AXIS,
+    COLOR_IMAGE_DIMENSIONS,
+    GRAYSCALE_CHANNELS,
+    MIN_IMAGE_DIMENSIONS,
+    RGB_CHANNELS,
+)
+
+
 def create_mean_spectrum_plot(
     cube_path,
     hdr_path,
     logger=None,
 ):
 
-        try:
-            import numpy as np
-            import plotly.graph_objects as go
+    try:
+        import numpy as np
+        import plotly.graph_objects as go
 
-            from nomad_combinatorial_thin_film.parser.utils import (
-                read_envi_hdr,
+        from nomad_combinatorial_thin_film.parser.utils import (
+            read_envi_hdr,
+        )
+
+        cube = np.load(
+            str(cube_path),
+            mmap_mode='r',
+        )
+
+        hdr = read_envi_hdr(str(hdr_path))
+
+        # Be tolerant to different header formats: some readers
+        # provide a list, others a string like "{400.0,401.0,...}".
+        raw_wl = hdr.get('wavelength', None)
+        if isinstance(raw_wl, (list, tuple)):
+            wavelengths = np.array(raw_wl, dtype=float)
+        elif isinstance(raw_wl, str):
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
+        else:
+            # fallback: use band indices if no wavelength info
+            wavelengths = np.arange(int(hdr.get('bands', 0)), dtype=float)
+
+        mean_spectrum = cube.mean(axis=(0, 1))
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=wavelengths,
+                y=mean_spectrum,
+                mode='lines',
+                name='Mean Spectrum',
+            )
+        )
+
+        fig.update_layout(
+            title='Mean Spectrum',
+            template='plotly_white',
+            xaxis_title='Wavelength (nm)',
+            yaxis_title='Intensity',
+            width=850,
+            height=650,
+        )
+
+        return PlotlyFigure(
+            label='Mean Spectrum',
+            figure=fig.to_plotly_json(),
+        )
+
+    except Exception as exc:
+        if logger:
+            logger.warning(
+                'Could not create mean spectrum: %s',
+                exc,
             )
 
-            cube = np.load(
-                str(cube_path),
-                mmap_mode='r',
-            )
+        return None
 
-            hdr = read_envi_hdr(str(hdr_path))
-
-            # Be tolerant to different header formats: some readers
-            # provide a list, others a string like "{400.0,401.0,...}".
-            raw_wl = hdr.get('wavelength', None)
-            if isinstance(raw_wl, (list, tuple)):
-                wavelengths = np.array(raw_wl, dtype=float)
-            elif isinstance(raw_wl, str):
-                wavelengths = np.array(
-                    [float(v) for v in raw_wl.strip('{} \n').split(',')]
-                )
-            else:
-                # fallback: use band indices if no wavelength info
-                wavelengths = np.arange(int(hdr.get('bands', 0)), dtype=float)
-
-            mean_spectrum = cube.mean(axis=(0, 1))
-
-            fig = go.Figure()
-
-            fig.add_trace(
-                go.Scatter(
-                    x=wavelengths,
-                    y=mean_spectrum,
-                    mode='lines',
-                    name='Mean Spectrum',
-                )
-            )
-
-            fig.update_layout(
-                title='Mean Spectrum',
-                template='plotly_white',
-                xaxis_title='Wavelength (nm)',
-                yaxis_title='Intensity',
-                width=850,
-                height=650,
-            )
-
-            return PlotlyFigure(
-                label='Mean Spectrum',
-                figure=fig.to_plotly_json(),
-            )
-
-        except Exception as exc:
-            if logger:
-                logger.warning(
-                    'Could not create mean spectrum: %s',
-                    exc,
-                )
-
-            return None
 
 def create_integrated_intensity_plot(
     cube_path,
@@ -77,6 +85,7 @@ def create_integrated_intensity_plot(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -118,6 +127,8 @@ def create_integrated_intensity_plot(
                 exc,
             )
         return None
+
+
 def create_peak_wavelength_map(
     cube_path,
     hdr_path,
@@ -126,9 +137,11 @@ def create_peak_wavelength_map(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         from nomad_combinatorial_thin_film.parser.utils import (
             read_envi_hdr,
         )
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -141,9 +154,7 @@ def create_peak_wavelength_map(
                 dtype=float,
             )
         elif isinstance(raw_wl, str):
-            wavelengths = np.array(
-                [float(v) for v in raw_wl.strip('{} \n').split(',')]
-            )
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
         else:
             wavelengths = np.arange(
                 int(hdr.get('bands', cube.shape[2])),
@@ -200,6 +211,8 @@ def create_peak_wavelength_map(
                 exc,
             )
         return None
+
+
 def create_quadrant_spectra_plot(
     cube_path,
     hdr_path,
@@ -208,9 +221,11 @@ def create_quadrant_spectra_plot(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         from nomad_combinatorial_thin_film.parser.utils import (
             read_envi_hdr,
         )
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -232,9 +247,7 @@ def create_quadrant_spectra_plot(
             raw_wl,
             str,
         ):
-            wavelengths = np.array(
-                [float(v) for v in raw_wl.strip('{} \n').split(',')]
-            )
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
         else:
             wavelengths = np.arange(
                 cube.shape[2],
@@ -313,6 +326,8 @@ def create_quadrant_spectra_plot(
                 exc,
             )
         return None
+
+
 def create_pca_rgb_plot(
     cube_path,
     logger=None,
@@ -321,6 +336,7 @@ def create_pca_rgb_plot(
         import numpy as np
         import plotly.graph_objects as go
         from sklearn.decomposition import PCA
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -395,6 +411,8 @@ def create_pca_rgb_plot(
                 exc,
             )
     return None
+
+
 def create_pca_component_maps(
     cube_path,
     logger=None,
@@ -403,6 +421,7 @@ def create_pca_component_maps(
         import numpy as np
         import plotly.graph_objects as go
         from sklearn.decomposition import PCA
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -434,9 +453,7 @@ def create_pca_component_maps(
                 )
             )
             fig.update_layout(
-                title=(
-                    f'Principal Component {pc + 1} ({explained[pc]:.1f}% variance)'
-                ),
+                title=(f'Principal Component {pc + 1} ({explained[pc]:.1f}% variance)'),
                 template='plotly_white',
                 width=850,
                 height=750,
@@ -457,6 +474,8 @@ def create_pca_component_maps(
                 exc,
             )
         return []
+
+
 def create_pca_loading_plot(
     cube_path,
     hdr_path,
@@ -466,9 +485,11 @@ def create_pca_loading_plot(
         import numpy as np
         import plotly.graph_objects as go
         from sklearn.decomposition import PCA
+
         from nomad_combinatorial_thin_film.parser.utils import (
             read_envi_hdr,
         )
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -490,9 +511,7 @@ def create_pca_loading_plot(
             raw_wl,
             str,
         ):
-            wavelengths = np.array(
-                [float(v) for v in raw_wl.strip('{} \n').split(',')]
-            )
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
         else:
             wavelengths = np.arange(
                 cube.shape[2],
@@ -558,6 +577,8 @@ def create_pca_loading_plot(
                 exc,
             )
         return None
+
+
 def create_wavelength_slider_plot(
     cube_path,
     hdr_path,
@@ -567,9 +588,11 @@ def create_wavelength_slider_plot(
         import numpy as np
         import plotly.graph_objects as go
         from nomad.datamodel.metainfo.plot import PlotlyFigure
+
         from nomad_combinatorial_thin_film.parser.utils import (
             read_envi_hdr,
         )
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -579,9 +602,7 @@ def create_wavelength_slider_plot(
         if isinstance(raw_wl, (list, tuple)):
             wavelengths = np.array(raw_wl, dtype=float)
         elif isinstance(raw_wl, str):
-            wavelengths = np.array(
-                [float(v) for v in raw_wl.strip('{} \n').split(',')]
-            )
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
         else:
             wavelengths = np.arange(int(hdr.get('bands', 0)), dtype=float)
         # ----------------------------------
@@ -682,6 +703,8 @@ def create_wavelength_slider_plot(
                 exc,
             )
         return None
+
+
 def create_spectral_variance_map(
     cube_path,
     logger=None,
@@ -689,6 +712,7 @@ def create_spectral_variance_map(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -743,6 +767,8 @@ def create_spectral_variance_map(
                 exc,
             )
         return None
+
+
 def create_3d_integrated_surface(
     cube_path,
     logger=None,
@@ -750,6 +776,7 @@ def create_3d_integrated_surface(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -836,6 +863,8 @@ def create_3d_integrated_surface(
                 exc,
             )
         return None
+
+
 def create_3d_peak_wavelength_surface(
     cube_path,
     hdr_path,
@@ -844,9 +873,11 @@ def create_3d_peak_wavelength_surface(
     try:
         import numpy as np
         import plotly.graph_objects as go
+
         from nomad_combinatorial_thin_film.parser.utils import (
             read_envi_hdr,
         )
+
         cube = np.load(
             str(cube_path),
             mmap_mode='r',
@@ -868,9 +899,7 @@ def create_3d_peak_wavelength_surface(
             raw_wl,
             str,
         ):
-            wavelengths = np.array(
-                [float(v) for v in raw_wl.strip('{} \n').split(',')]
-            )
+            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
         else:
             wavelengths = np.arange(
                 cube.shape[2],
@@ -967,7 +996,7 @@ def create_image_plot(npy_path, roi=None, logger=None):
         import plotly.graph_objects as go
 
         image_array = np.load(str(npy_path), mmap_mode='r')
-        if image_array.size == 0 or len(image_array.shape) < 2:
+        if image_array.size == 0 or len(image_array.shape) < MIN_IMAGE_DIMENSIONS:
             return []
 
         max_display_size = 1000
@@ -978,9 +1007,15 @@ def create_image_plot(npy_path, roi=None, logger=None):
         )
         image_display = np.asarray(image_array[::scale, ::scale])
 
-        if len(image_display.shape) == 3 and image_display.shape[2] >= 3:
-            display_data = normalize_plot_array(image_display[:, :, :3])
-        elif len(image_display.shape) == 3 and image_display.shape[2] == 1:
+        if (
+            len(image_display.shape) == COLOR_IMAGE_DIMENSIONS
+            and image_display.shape[CHANNEL_AXIS] >= RGB_CHANNELS
+        ):
+            display_data = normalize_plot_array(image_display[:, :, :RGB_CHANNELS])
+        elif (
+            len(image_display.shape) == COLOR_IMAGE_DIMENSIONS
+            and image_display.shape[CHANNEL_AXIS] == GRAYSCALE_CHANNELS
+        ):
             gray = normalize_plot_array(image_display[:, :, 0])
             display_data = np.stack([gray, gray, gray], axis=2)
         else:
@@ -1042,6 +1077,7 @@ def create_image_plot(npy_path, roi=None, logger=None):
             logger.warning('Could not create image plot for %s: %s', npy_path, exc)
         return []
 
+
 # ============================================================
 # Hyperspectral plotting orchestration
 # ============================================================
@@ -1080,8 +1116,6 @@ def create_hyperspectral_overview_figures(cube_path, hdr_path, logger=None):
             figures.append(figure)
 
     return figures
-
-
 
 
 def collect_image_dataset_figures(measurements):

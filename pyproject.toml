@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = ""
+Repository = "https://github.com/Automate-Solar/nomad-combinatorial-thin-film"
 
 [project.optional-dependencies]
 dev = [

@@ -281,7 +281,7 @@ class HyperspectralAnalysis(
     PlotSection,
     ArchiveSection,
 ):
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         super().normalize(archive, logger)
 
         try:
@@ -365,12 +365,13 @@ class HyperspectralMeasurement(ArchiveSection):
         if not self.visualization:
             return
 
-        visualization = self.visualization
+        # visualization = self.visualization
 
 
 # ============================================================
 # Dataset
 # ============================================================
+
 
 class HyperspectralDataset(PlotSection, EntryData):
     m_def = Section(
@@ -406,8 +407,3 @@ class HyperspectralDataset(PlotSection, EntryData):
 
 
 m_package.__init_metainfo__()
-
-
-
-
-

@@ -10,7 +10,9 @@ class ImageParserEntryPoint(ParserEntryPoint):
 
 class HyperspectralParserEntryPoint(ParserEntryPoint):
     def load(self):
-        from nomad_combinatorial_thin_film.parser.hyperspectral_parser import HyperspectralRootParser
+        from nomad_combinatorial_thin_film.parser.hyperspectral_parser import (
+            HyperspectralRootParser,
+        )
 
         return HyperspectralRootParser(**self.dict())
 

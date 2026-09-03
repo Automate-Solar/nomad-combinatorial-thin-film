@@ -1,8 +1,39 @@
+import json
 import math
+import re
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
+from nomad.datamodel.metainfo.plot import PlotlyFigure
+from PIL import Image
 from plotly.subplots import make_subplots
+
+from nomad_combinatorial_thin_film.constants import (
+    CHANNEL_AXIS,
+    COLOR_IMAGE_DIMENSIONS,
+    GRAYSCALE_CHANNELS,
+    MIN_IMAGE_DIMENSIONS,
+    RGB_CHANNELS,
+)
+from nomad_combinatorial_thin_film.plugin.hyperspectral_plugin import (
+    AcquisitionMetadata,
+    CubeMetadata,
+    HyperspectralAnalysis,
+    HyperspectralMeasurement,
+    HyperspectralRawData,
+)
+from nomad_combinatorial_thin_film.plugin.image_plugin import (
+    BoundingBox,
+    ImageData,
+    ImageDimensions,
+    ImageExperimentRun,
+    ImageMetadata,
+    ImageVisualization,
+    ManifestData,
+    RegionOfInterest,
+)
 
 ENVI_DTYPE_MAP = {
     '12': np.uint16,
@@ -36,21 +67,21 @@ def read_envi_hdr(path):
     buffer = []
 
     for line in lines:
-        line = line.strip()
+        words = line.strip()
 
-        if not line or line.upper() == 'ENVI':
+        if not words or words.upper() == 'ENVI':
             continue
 
         if collecting:
-            buffer.append(line)
+            buffer.append(words)
             if '}' in line:
                 metadata[key] = ' '.join(buffer)
                 collecting = False
                 buffer = []
             continue
 
-        if '=' in line:
-            k, v = map(str.strip, line.split('=', 1))
+        if '=' in words:
+            k, v = map(str.strip, words.split('=', 1))
             k = k.lower()
 
             if v.startswith('{') and not v.endswith('}'):
@@ -432,31 +463,6 @@ if __name__ == '__main__':
 # Shared parser utilities
 # ============================================================
 
-import json
-import re
-from pathlib import Path
-
-import pandas as pd
-from PIL import Image
-from nomad.datamodel.metainfo.plot import PlotlyFigure
-
-from nomad_combinatorial_thin_film.plugin.image_plugin import (
-    BoundingBox,
-    ImageData,
-    ImageDimensions,
-    ImageExperimentRun,
-    ImageMetadata,
-    ImageVisualization,
-    ManifestData,
-    RegionOfInterest,
-)
-from nomad_combinatorial_thin_film.plugin.hyperspectral_plugin import (
-    AcquisitionMetadata,
-    CubeMetadata,
-    HyperspectralMeasurement,
-    HyperspectralRawData,
-    HyperspectralAnalysis,
-)
 
 METADATA_NAMES = ('metadata.json',)
 NPY_NAMES = ('image_raw.npy', 'raw_image.npy')
@@ -536,8 +542,7 @@ def find_image_folders(data_root: Path) -> list[Path]:
             continue
 
         has_image_files = (
-            find_metadata_file(folder) is not None
-            or find_npy_file(folder) is not None
+            find_metadata_file(folder) is not None or find_npy_file(folder) is not None
         )
         has_layout_hint = folder.name.lower() in IMAGE_FOLDER_HINTS
         has_timestamp_name = TIMESTAMP_PATTERN.match(folder.name) is not None
@@ -669,7 +674,9 @@ def set_manifest_value(manifest: ManifestData, field_name: str, value, log):
         log.warning('Could not convert manifest field %s=%s', field_name, value)
 
 
-def parse_metadata(json_path: Path, log) -> tuple[ImageMetadata | None, ImageData | None, dict]:
+def parse_metadata(
+    json_path: Path, log
+) -> tuple[ImageMetadata | None, ImageData | None, dict]:
     try:
         with open(json_path) as file:
             data = json.load(file)
@@ -696,11 +703,15 @@ def extract_image_data(metadata_dict: dict) -> ImageData:
     image_data = ImageData()
 
     shape = metadata_dict.get('shape', [])
-    if isinstance(shape, list) and len(shape) >= 2:
+    if isinstance(shape, list) and len(shape) >= MIN_IMAGE_DIMENSIONS:
         dimensions = ImageDimensions()
         dimensions.height = int(shape[0])
         dimensions.width = int(shape[1])
-        dimensions.channels = int(shape[2]) if len(shape) > 2 else 1
+        dimensions.channels = (
+            int(shape[CHANNEL_AXIS])
+            if len(shape) > CHANNEL_AXIS
+            else GRAYSCALE_CHANNELS
+        )
         dimensions.bit_depth = int(to_float(metadata_dict.get('bit_depth', 8)))
         dimensions.is_color = bool(metadata_dict.get('is_color', False))
         dimensions.pixel_value_min = int(to_float(metadata_dict.get('min', 0)))
@@ -733,16 +744,22 @@ def extract_image_data(metadata_dict: dict) -> ImageData:
     return image_data
 
 
-def dimensions_from_npy(npy_path: Path, metadata_dict: dict, log) -> ImageDimensions | None:
+def dimensions_from_npy(
+    npy_path: Path, metadata_dict: dict, log
+) -> ImageDimensions | None:
     try:
         image_array = np.load(str(npy_path), mmap_mode='r')
-        if len(image_array.shape) < 2:
+        if len(image_array.shape) < MIN_IMAGE_DIMENSIONS:
             return None
 
         dimensions = ImageDimensions()
         dimensions.height = int(image_array.shape[0])
         dimensions.width = int(image_array.shape[1])
-        dimensions.channels = int(image_array.shape[2]) if len(image_array.shape) > 2 else 1
+        dimensions.channels = (
+            int(image_array.shape[CHANNEL_AXIS])
+            if len(image_array.shape) > CHANNEL_AXIS
+            else GRAYSCALE_CHANNELS
+        )
         dimensions.bit_depth = int(to_float(metadata_dict.get('bit_depth', 8)))
         dimensions.is_color = dimensions.channels > 1
         dimensions.pixel_value_min = int(np.min(image_array))
@@ -760,13 +777,19 @@ def convert_npy_to_png(npy_path: Path, log) -> Path | None:
             log.warning('Image array is empty: %s', npy_path)
             return None
 
-        if len(image_array.shape) == 3 and image_array.shape[2] >= 3:
-            img_normalized = normalize_array(image_array[:, :, :3])
+        if (
+            len(image_array.shape) == COLOR_IMAGE_DIMENSIONS
+            and image_array.shape[CHANNEL_AXIS] >= RGB_CHANNELS
+        ):
+            img_normalized = normalize_array(image_array[:, :, :RGB_CHANNELS])
             img = Image.fromarray(img_normalized.astype(np.uint8), mode='RGB')
-        elif len(image_array.shape) == 3 and image_array.shape[2] == 1:
+        elif (
+            len(image_array.shape) == COLOR_IMAGE_DIMENSIONS
+            and image_array.shape[CHANNEL_AXIS] == GRAYSCALE_CHANNELS
+        ):
             img_normalized = normalize_array(image_array[:, :, 0])
             img = Image.fromarray(img_normalized.astype(np.uint8), mode='L')
-        elif len(image_array.shape) == 2:
+        elif len(image_array.shape) == MIN_IMAGE_DIMENSIONS:
             img_normalized = normalize_array(image_array)
             img = Image.fromarray(img_normalized.astype(np.uint8), mode='L')
         else:
@@ -792,7 +815,9 @@ def normalize_array(array: np.ndarray) -> np.ndarray:
     return (array - arr_min) / (arr_max - arr_min) * 255
 
 
-def parse_image_folder(image_folder: Path, data_root: Path, log) -> ImageExperimentRun | None:
+def parse_image_folder(
+    image_folder: Path, data_root: Path, log
+) -> ImageExperimentRun | None:
     metadata_path = find_metadata_file(image_folder)
     manifest_path = image_folder / 'manifest.csv'
     npy_path = find_npy_file(image_folder)
@@ -840,7 +865,9 @@ def parse_image_folder(image_folder: Path, data_root: Path, log) -> ImageExperim
             experiment.image.image_preview = preview_ref
             experiment.image.visualization = ImageVisualization()
             experiment.image.visualization.image_file = preview_ref
-            log.info('Image preview available for %s: %s', image_folder.name, preview_ref)
+            log.info(
+                'Image preview available for %s: %s', image_folder.name, preview_ref
+            )
 
     return experiment
 
@@ -959,7 +986,9 @@ def create_npy(folder: Path, cube: np.ndarray) -> Path:
     return npy_path
 
 
-def create_rgb_preview(folder: Path, cube: np.ndarray, wavelengths: np.ndarray, log) -> Path | None:
+def create_rgb_preview(
+    folder: Path, cube: np.ndarray, wavelengths: np.ndarray, log
+) -> Path | None:
     try:
         r = nearest_band(wavelengths, 650)
         g = nearest_band(wavelengths, 550)
@@ -981,7 +1010,9 @@ def create_rgb_preview(folder: Path, cube: np.ndarray, wavelengths: np.ndarray, 
         return None
 
 
-def parse_hyperspectral_folder(folder: Path, root: Path, log) -> HyperspectralMeasurement | None:
+def parse_hyperspectral_folder(
+    folder: Path, root: Path, log
+) -> HyperspectralMeasurement | None:
     hdr_file = find_hdr_file(folder)
     bil_file = find_bil_file(folder, hdr_file)
 
@@ -1025,5 +1056,3 @@ def parse_hyperspectral_folder(folder: Path, root: Path, log) -> HyperspectralMe
     except Exception as exc:
         log.error('Error parsing hyperspectral folder %s : %s', folder, exc)
         return None
-
-

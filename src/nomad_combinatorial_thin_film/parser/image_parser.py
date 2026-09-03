@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from nomad.parsing.parser import MatchingParser
 
+import nomad_combinatorial_thin_film.plugin.utils as plugin_utils
 from nomad_combinatorial_thin_film.parser.utils import (
     find_image_folders,
     find_synthesis_json,
@@ -11,7 +12,6 @@ from nomad_combinatorial_thin_film.parser.utils import (
     parse_synthesis_json,
 )
 from nomad_combinatorial_thin_film.plugin.image_plugin import ImageDataset
-import nomad_combinatorial_thin_film.plugin.utils as plugin_utils
 
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive
@@ -69,4 +69,3 @@ class DataRootParser(MatchingParser):
 
         except Exception as exc:
             log.error('Error parsing image sample folder: %s', str(exc), exc_info=True)
-

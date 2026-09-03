@@ -19,7 +19,6 @@ bundle so that any parser registration side-effects occur on import.
 """
 
 from importlib import import_module
-from typing import List
 
 _DEFAULT_SUBPACKAGES = ['nomad_combinatorial_thin_film']
 

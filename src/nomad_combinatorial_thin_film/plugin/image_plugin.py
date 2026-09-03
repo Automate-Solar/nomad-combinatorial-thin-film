@@ -657,5 +657,3 @@ class ImageDataset(PlotSection, EntryData):
 
 
 m_package.__init_metainfo__()
-
-

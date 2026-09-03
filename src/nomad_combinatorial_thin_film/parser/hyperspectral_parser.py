@@ -9,7 +9,9 @@ from nomad_combinatorial_thin_film.parser.utils import (
     find_hyperspectral_folders,
     parse_hyperspectral_folder,
 )
-from nomad_combinatorial_thin_film.plugin.hyperspectral_plugin import HyperspectralDataset
+from nomad_combinatorial_thin_film.plugin.hyperspectral_plugin import (
+    HyperspectralDataset,
+)
 
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive

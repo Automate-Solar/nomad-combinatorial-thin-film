@@ -4,7 +4,7 @@ from pathlib import Path
 
 from nomad.datamodel import EntryArchive
 
-from plugin_img.parser.image_parser import DataRootParser
+from nomad_combinatorial_thin_film.parser.image_parser import DataRootParser
 
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 

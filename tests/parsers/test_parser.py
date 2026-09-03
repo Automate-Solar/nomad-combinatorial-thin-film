@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 
 from nomad.datamodel import EntryArchive
-
 from plugin_img.parser.image_parser import DataRootParser
 
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
@@ -55,4 +54,3 @@ def test_parse_without_image_files_creates_dataset_entry_with_synthesis_conditio
     assert getattr(archive.data, 'measurements', None) in (None, [])
     assert archive.data.synthesis_conditions is not None
     assert archive.data.synthesis_conditions.Date == '2026-06-05'
-

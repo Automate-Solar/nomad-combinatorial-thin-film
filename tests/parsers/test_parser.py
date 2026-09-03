@@ -15,4 +15,3 @@ def _parse_sample(sample_root: Path) -> EntryArchive:
     marker_file.touch(exist_ok=True)
     parser.parse(str(marker_file), archive, logging.getLogger())
     return archive
-

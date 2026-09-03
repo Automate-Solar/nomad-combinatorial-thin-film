@@ -133,6 +133,6 @@ dmypy.json
 /my-archive
 
 # test data files
-tests/data/*
 tests/data/CuSnZnS_31_123456.zip
 tests/data/CuSnZnS_32_123456.zip
+archive/*

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from nomad_combinatorial_thin_film.categories import (
-    Uppsala,
+    Uppsala
 )
 from nomad.datamodel.data import ArchiveSection, Schema
 from nomad.datamodel.metainfo.annotations import (
@@ -54,8 +54,6 @@ from nomad_material_processing.vapor_deposition.pvd.general import (
 from nomad_material_processing.vapor_deposition.pvd.sputtering import SputterDeposition
 from nomad_measurements.utils import create_archive, merge_sections
 
-from nomad_combinatorial_thin_film.categories import Uppsala
-
 
 from nomad_dtu_nanolab_plugin.schema_packages.gas import DTUGasSupply
 from nomad_dtu_nanolab_plugin.schema_packages.sample import (
@@ -94,8 +92,39 @@ class UppsalaSputtering(DTUSputtering, PlotSection, Schema):
         links=['http://purl.obolibrary.org/obo/CHMO_0001328'],
         a_eln=ELNAnnotation(
             properties=SectionProperties(
-                order=[],
-                visible=Filter(exclude=[]),
+                order=[
+                    'lab_id',
+                    'log_file',
+                    'base_pressure',
+                    'location',
+                    'process_logfile',
+                    'overwrite',
+                    'deposition_parameters',
+                    'substrates',
+                    'steps',
+                    'temperature_ramp_up',
+                    'source_ramp_up',
+                    'source_presput',
+                    'source_deprate',
+                    'temperature_ramp_down',
+                    'instrument',
+                    'end_of_process',
+                    'flags',
+                ],
+                visible=Filter(exclude=[
+                    'sulfur_partial_pressure',
+                    'sulfur_cracker_pressure',
+                    'cracker_warmup_log_file',
+                    'target_image_before',
+                    'target_image_after',
+                    'plasma_image',
+                    'sample_image',
+                    'optix_spectra',
+                    'rga_file',
+                    'optix_power_type',
+                    'optix_current',
+                    ]
+                ),
             ),
         ),
     )

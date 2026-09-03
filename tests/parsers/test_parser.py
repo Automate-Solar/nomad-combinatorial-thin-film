@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from nomad.datamodel import EntryArchive
+
 from nomad_combinatorial_thin_film.parser.image_parser import DataRootParser
 
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'

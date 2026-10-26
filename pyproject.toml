@@ -141,12 +141,11 @@ image_parser = "nomad_combinatorial_thin_film.parser:image_parser_entry_point"
 image_schema = "nomad_combinatorial_thin_film.plugin:image_schema_package_entry_point"
 hyperspectral_schema = "nomad_combinatorial_thin_film.plugin:hyperspectral_schema_package_entry_point"
 sputtering_schema = "nomad_combinatorial_thin_film.plugin:sputtering_schema_package_entry_point"
+dtu_xrd_schema = "nomad_combinatorial_thin_film.plugin:xrd_schema_package_entry_point"
 
 
 
 [tool.cruft]
 # Avoid updating workflow files, this leads to permissions issues
 skip = [".github/*"]
-
-
 

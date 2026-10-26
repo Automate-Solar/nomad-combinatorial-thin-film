@@ -22,6 +22,13 @@ class SputteringSchemaPackageEntryPoint(SchemaPackageEntryPoint):
         return m_package
 
 
+class XrdSchemaPackageEntryPoint(SchemaPackageEntryPoint):
+    def load(self):
+        from nomad_combinatorial_thin_film.plugin.xrd_plugin import m_package
+
+        return m_package
+
+
 image_schema_package_entry_point = ImageSchemaPackageEntryPoint(
     name='ImagePlugin',
     description='Schema package for image analysis with metadata, ROI, and dimensions.',
@@ -37,6 +44,11 @@ hyperspectral_schema_package_entry_point = HyperspectralSchemaPackageEntryPoint(
 sputtering_schema_package_entry_point = SputteringSchemaPackageEntryPoint(
     name='UppsalaSputteringPlugin',
     description='Schema package for Uppsala sputtering data.',
+)
+
+xrd_schema_package_entry_point = XrdSchemaPackageEntryPoint(
+    name='DTUXRDMeasurement',
+    description='Schema package for DTU X-ray diffraction measurements.',
 )
 
 

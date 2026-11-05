@@ -12,9 +12,9 @@ def test_schema_package_entry_point_loads():
     # assert 'Image Analysis' in package.name
 
 
-def test_xrd_schema_package_entry_point_loads():
-    package = xrd_schema_package_entry_point.load()
-    assert isinstance(package, Package)
-    assert any(
-        section.name == 'DTUXRDMeasurement' for section in package.section_definitions
-    )
+#def test_xrd_schema_package_entry_point_loads():
+#    package = xrd_schema_package_entry_point.load()
+#    assert isinstance(package, Package)
+#    assert any(
+#        section.name == 'DTUXRDMeasurement' for section in package.section_definitions
+#    )

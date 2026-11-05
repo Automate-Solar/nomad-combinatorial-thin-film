@@ -141,8 +141,14 @@ image_parser = "nomad_combinatorial_thin_film.parser:image_parser_entry_point"
 image_schema = "nomad_combinatorial_thin_film.plugin:image_schema_package_entry_point"
 hyperspectral_schema = "nomad_combinatorial_thin_film.plugin:hyperspectral_schema_package_entry_point"
 sputtering_schema = "nomad_combinatorial_thin_film.plugin:sputtering_schema_package_entry_point"
+experiment_plan_schema = "nomad_combinatorial_thin_film.plugin:experiment_plan_schema_package_entry_point"
+experiment_plan_parser = "nomad_combinatorial_thin_film.parser:experiment_plan_parser_entry_point"
 dtu_xrd_schema = "nomad_combinatorial_thin_film.plugin:xrd_schema_package_entry_point"
+sulfurization_schema = "nomad_combinatorial_thin_film.plugin:sulfurization_schema_package_entry_point"
 
+sulfurization_parser = "nomad_combinatorial_thin_film.parser:sulfurization_parser_entry_point"
+xrd_schema = "nomad_combinatorial_thin_film.plugin:xrd_schema_package_entry_point"
+xrd_parser = "nomad_combinatorial_thin_film.parser:xrd_parser_entry_point"
 
 
 [tool.cruft]

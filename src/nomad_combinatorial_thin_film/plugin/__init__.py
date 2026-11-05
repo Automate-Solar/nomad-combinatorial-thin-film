@@ -53,3 +53,59 @@ xrd_schema_package_entry_point = XrdSchemaPackageEntryPoint(
 
 
 schema_package_entry_point = image_schema_package_entry_point
+
+
+class ExperimentPlanSchemaPackageEntryPoint(SchemaPackageEntryPoint):
+    def load(self):
+        from nomad_combinatorial_thin_film.plugin.experiment_plan import m_package
+
+        return m_package
+
+
+experiment_plan_schema_package_entry_point = ExperimentPlanSchemaPackageEntryPoint(
+    name='UppsalaSputteringExperimentPlan',
+    description='Schema package for sputtering experiment plans and predicted profiles.',
+)
+
+from nomad.config.models.plugins import SchemaPackageEntryPoint
+
+
+class SulfurizationSchemaPackageEntryPoint(
+    SchemaPackageEntryPoint
+):
+
+    def load(self):
+        from nomad_combinatorial_thin_film.plugin.sulfurization import (
+            m_package,
+        )
+
+        return m_package
+
+
+sulfurization_schema_package_entry_point = (
+    SulfurizationSchemaPackageEntryPoint(
+        name="SulfurizationSchema",
+        description=(
+            "Schema for PicoLog sulfurization measurements "
+            "and temperature stability analysis."
+        ),
+    )
+)
+
+
+from nomad.config.models.plugins import SchemaPackageEntryPoint
+
+
+class XRDSchemaPackageEntryPoint(SchemaPackageEntryPoint):
+    def load(self):
+        from nomad_combinatorial_thin_film.plugin.xrd import m_package
+        return m_package
+
+
+xrd_schema_package_entry_point = XRDSchemaPackageEntryPoint(
+    name="XRDSchema",
+    description=(
+        "Schema for spatially resolved XRD measurements "
+        "and experimental peak detection."
+    ),
+)

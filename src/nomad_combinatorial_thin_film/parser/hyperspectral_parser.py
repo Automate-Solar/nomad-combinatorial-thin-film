@@ -25,7 +25,7 @@ class HyperspectralRootParser(MatchingParser):
     def parse(
         self,
         mainfile: str,
-        archive: "EntryArchive",
+        archive: 'EntryArchive',
         logger=None,
         child_archives=None,
     ) -> None:
@@ -37,7 +37,7 @@ class HyperspectralRootParser(MatchingParser):
         root = Path(mainfile).parent
 
         dataset = HyperspectralDataset()
-        dataset.name = f"Hyperspectral Dataset - {root.name}"
+        dataset.name = f'Hyperspectral Dataset - {root.name}'
 
         measurements = []
         for folder in find_hyperspectral_folders(root):
@@ -49,4 +49,4 @@ class HyperspectralRootParser(MatchingParser):
         dataset.figures = collect_dataset_figures(measurements)
         archive.data = dataset
 
-        log.info("Parsed %d hyperspectral measurements", len(measurements))
+        log.info('Parsed %d hyperspectral measurements', len(measurements))

@@ -37,9 +37,9 @@ MIN_SMOOTHING_POINTS = 3
 # ============================================================
 
 POSITION_RE = re.compile(
-    r"phi\s*(-?\d+(?:\.\d+)?)\s*"
-    r"\(\s*(-?\d+(?:\.\d+)?)\s*,\s*"
-    r"(-?\d+(?:\.\d+)?)\s*\)",
+    r'phi\s*(-?\d+(?:\.\d+)?)\s*'
+    r'\(\s*(-?\d+(?:\.\d+)?)\s*,\s*'
+    r'(-?\d+(?:\.\d+)?)\s*\)',
     re.IGNORECASE,
 )
 
@@ -51,8 +51,8 @@ def parse_position(filename):
 
     if not match:
         raise ValueError(
-            f"Cannot extract measurement coordinates from {filename}. "
-            "Expected a filename containing phi0(0,-15)."
+            f'Cannot extract measurement coordinates from {filename}. '
+            'Expected a filename containing phi0(0,-15).'
         )
 
     phi, x, y = match.groups()
@@ -69,7 +69,7 @@ def position_key(position):
 
     phi, x, y = position
 
-    return f"phi{phi}({x:g},{y:g})"
+    return f'phi{phi}({x:g},{y:g})'
 
 
 def position_sort_key(position):
@@ -92,17 +92,16 @@ def clean_xy(two_theta, intensity, filename, uncertainty=None):
     y = np.asarray(intensity, dtype=float).ravel()
 
     if x.size != y.size:
-        raise ValueError(f"{filename}: 2theta/intensity length mismatch.")
+        raise ValueError(f'{filename}: 2theta/intensity length mismatch.')
 
     if uncertainty is not None:
-
         uncertainty = np.asarray(
             uncertainty,
             dtype=float,
         ).ravel()
 
         if uncertainty.size != x.size:
-            raise ValueError(f"{filename}: uncertainty array length mismatch.")
+            raise ValueError(f'{filename}: uncertainty array length mismatch.')
 
     valid = np.isfinite(x) & np.isfinite(y)
 
@@ -113,10 +112,10 @@ def clean_xy(two_theta, intensity, filename, uncertainty=None):
         uncertainty = uncertainty[valid]
 
     if len(x) < MIN_VALID_XRD_POINTS:
-        raise ValueError(f"{filename}: insufficient valid XRD data points.")
+        raise ValueError(f'{filename}: insufficient valid XRD data points.')
 
     # Sort by 2theta.
-    order = np.argsort(x, kind="stable")
+    order = np.argsort(x, kind='stable')
 
     x = x[order]
     y = y[order]
@@ -137,12 +136,12 @@ def clean_xy(two_theta, intensity, filename, uncertainty=None):
         uncertainty = uncertainty[unique_indices]
 
     if len(x) < MIN_VALID_XRD_POINTS:
-        raise ValueError(f"{filename}: insufficient unique 2theta values.")
+        raise ValueError(f'{filename}: insufficient unique 2theta values.')
 
     return {
-        "two_theta": x,
-        "intensity": y,
-        "uncertainty": uncertainty,
+        'two_theta': x,
+        'intensity': y,
+        'uncertainty': uncertainty,
     }
 
 
@@ -159,11 +158,8 @@ def read_asc(content, filename):
     if array.ndim == 1:
         array = np.atleast_2d(array)
 
-    if (
-        array.ndim != ASC_EXPECTED_DIMENSIONS
-        or array.shape[1] < ASC_REQUIRED_COLUMNS
-    ):
-        raise ValueError(f"Invalid ASC file: {filename}")
+    if array.ndim != ASC_EXPECTED_DIMENSIONS or array.shape[1] < ASC_REQUIRED_COLUMNS:
+        raise ValueError(f'Invalid ASC file: {filename}')
 
     two_theta = array[:, 0]
     intensity = array[:, 1]
@@ -188,7 +184,7 @@ def read_asc(content, filename):
 def local_name(element):
     """Return an XML tag without its namespace."""
 
-    return element.tag.rsplit("}", 1)[-1].lower()
+    return element.tag.rsplit('}', 1)[-1].lower()
 
 
 def find_all(element, name):
@@ -204,8 +200,8 @@ def parse_float_list(text):
         return np.array([], dtype=float)
 
     return np.fromstring(
-        text.replace(",", " "),
-        sep=" ",
+        text.replace(',', ' '),
+        sep=' ',
         dtype=float,
     )
 
@@ -217,69 +213,66 @@ def read_xrdml(content, filename):
 
     blocks = find_all(
         root,
-        "dataPoints",
+        'dataPoints',
     )
 
     if not blocks:
-        raise ValueError(f"No dataPoints element found in {filename}.")
+        raise ValueError(f'No dataPoints element found in {filename}.')
 
     if len(blocks) > 1:
         logger.warning(
-            "%s contains multiple dataPoints blocks. "
-            "The first block will be read, matching the original reader.",
+            '%s contains multiple dataPoints blocks. '
+            'The first block will be read, matching the original reader.',
             filename,
         )
 
     block = blocks[0]
 
-    intensity_nodes = find_all(block, "intensities") or find_all(block, "counts")
+    intensity_nodes = find_all(block, 'intensities') or find_all(block, 'counts')
 
     if not intensity_nodes:
-        raise ValueError(f"No intensity array found in {filename}.")
+        raise ValueError(f'No intensity array found in {filename}.')
 
     intensity = parse_float_list(intensity_nodes[0].text)
 
     if len(intensity) == 0:
-        raise ValueError(f"Cannot parse intensity array in {filename}.")
+        raise ValueError(f'Cannot parse intensity array in {filename}.')
 
     # Identify the 2theta axis.
     axis_node = None
 
-    for node in find_all(block, "positions"):
+    for node in find_all(block, 'positions'):
+        axis = node.attrib.get('axis', '').lower().replace(' ', '')
 
-        axis = node.attrib.get("axis", "").lower().replace(" ", "")
-
-        if axis in ("2theta", "2-theta", "twotheta"):
+        if axis in ('2theta', '2-theta', 'twotheta'):
             axis_node = node
             break
 
     if axis_node is None:
-        raise ValueError(f"Cannot identify the 2theta axis in {filename}.")
+        raise ValueError(f'Cannot identify the 2theta axis in {filename}.')
 
     # Some XRDML files contain an explicit list of positions.
     explicit = find_all(
         axis_node,
-        "listPositions",
+        'listPositions',
     )
 
     if explicit and explicit[0].text:
-
         two_theta = parse_float_list(explicit[0].text)
 
     else:
-
         starts = find_all(
             axis_node,
-            "startPosition",
+            'startPosition',
         )
 
         ends = find_all(
             axis_node,
-            "endPosition",
+            'endPosition',
         )
 
         if not starts or not ends:
-            raise ValueError(f"Missing 2theta start/end positions in {filename}.")
+            raise ValueError(f'Missing 2theta start/end positions in {filename}.')
 
         start = float(starts[0].text)
         end = float(ends[0].text)
@@ -307,13 +300,13 @@ def read_one(content, filename):
 
     extension = Path(filename).suffix.lower()
 
-    if extension == ".asc":
+    if extension == '.asc':
         return read_asc(content, filename)
 
-    if extension == ".xrdml":
+    if extension == '.xrdml':
         return read_xrdml(content, filename)
 
-    raise ValueError(f"Unsupported XRD file format: {filename}")
+    raise ValueError(f'Unsupported XRD file format: {filename}')
 
 
 # ============================================================
@@ -344,8 +337,8 @@ def load_xrd_files(mainfile):
 
     if not zipfile.is_zipfile(mainfile):
         raise ValueError(
-            f"Expected a ZIP archive as the NOMAD mainfile, "
-            f"but received: {mainfile.name}"
+            f'Expected a ZIP archive as the NOMAD mainfile, '
+            f'but received: {mainfile.name}'
         )
 
     records = []
@@ -354,35 +347,31 @@ def load_xrd_files(mainfile):
     # 2. Open ZIP and find measurement files
     # --------------------------------------------------------
 
-    with zipfile.ZipFile(mainfile, "r") as archive:
-
+    with zipfile.ZipFile(mainfile, 'r') as archive:
         candidates = {}
 
         filenames = [
             name
             for name in archive.namelist()
-            if not name.endswith("/")
-            and not name.startswith("__MACOSX/")
-            and Path(name).suffix.lower() in (".asc", ".xrdml")
+            if not name.endswith('/')
+            and not name.startswith('__MACOSX/')
+            and Path(name).suffix.lower() in ('.asc', '.xrdml')
         ]
 
         logger.info(
-            "Found %d candidate XRD files in ZIP archive %s.",
+            'Found %d candidate XRD files in ZIP archive %s.',
             len(filenames),
             mainfile.name,
         )
 
         if not filenames:
-            raise ValueError(
-                f"No ASC or XRDML files found inside {mainfile.name}."
-            )
+            raise ValueError(f'No ASC or XRDML files found inside {mainfile.name}.')
 
         # ----------------------------------------------------
         # 3. Group files by spatial measurement position
         # ----------------------------------------------------
 
         for filename in filenames:
-
             basename = Path(filename).name
 
             position = parse_position(basename)
@@ -397,20 +386,19 @@ def load_xrd_files(mainfile):
             candidates,
             key=position_sort_key,
         ):
-
             options = candidates[position]
 
             # Prefer ASC over XRDML if both exist.
             selected = sorted(
                 options,
                 key=lambda name: (
-                    0 if Path(name).suffix.lower() == ".asc" else 1,
+                    0 if Path(name).suffix.lower() == '.asc' else 1,
                     name.lower(),
                 ),
             )[0]
 
             logger.info(
-                "Reading measurement from ZIP: %s",
+                'Reading measurement from ZIP: %s',
                 selected,
             )
 
@@ -425,9 +413,9 @@ def load_xrd_files(mainfile):
 
             records.append(
                 {
-                    "position": position,
-                    "position_label": position_key(position),
-                    "source_filename": Path(selected).name,
+                    'position': position,
+                    'position_label': position_key(position),
+                    'source_filename': Path(selected).name,
                     **data,
                 }
             )
@@ -437,36 +425,33 @@ def load_xrd_files(mainfile):
     # --------------------------------------------------------
 
     if not records:
-        raise ValueError(
-            f"No valid XRD measurements found in {mainfile.name}."
-        )
+        raise ValueError(f'No valid XRD measurements found in {mainfile.name}.')
 
-    records.sort(
-        key=lambda item: position_sort_key(item["position"])
-    )
+    records.sort(key=lambda item: position_sort_key(item['position']))
 
     logger.info(
-        "Successfully loaded %d spatial XRD patterns from ZIP archive %s.",
+        'Successfully loaded %d spatial XRD patterns from ZIP archive %s.',
         len(records),
         mainfile.name,
     )
 
-    input_format = "ZIP archive containing ASC/XRDML files"
+    input_format = 'ZIP archive containing ASC/XRDML files'
 
     return records, input_format
+
 
 # ============================================================
 # 7. Peak detection
 # ============================================================
 
 DEFAULT_PEAK_CONFIG = {
-    "smoothing_enabled": True,
-    "smoothing_window": 7,
-    "smoothing_polyorder": 2,
-    "prominence_fraction": 0.03,
-    "minimum_prominence": 0.0,
-    "minimum_distance_deg": 0.15,
-    "minimum_width_deg": 0.0,
+    'smoothing_enabled': True,
+    'smoothing_window': 7,
+    'smoothing_polyorder': 2,
+    'prominence_fraction': 0.03,
+    'minimum_prominence': 0.0,
+    'minimum_distance_deg': 0.15,
+    'minimum_width_deg': 0.0,
 }
 
 
@@ -505,7 +490,7 @@ def smooth_xrd_pattern(
         intensity,
         window_length=window_length,
         polyorder=polyorder,
-        mode="interp",
+        mode='interp',
     )
 
 
@@ -562,40 +547,37 @@ def detect_peaks(  # noqa: PLR0912, PLR0915
 
     y_processed = y.copy()
 
-    background = float(config.get("subtract_constant_background", 0.0))
+    background = float(config.get('subtract_constant_background', 0.0))
 
     y_processed -= background
 
-    if config.get("clip_negative_after_background", True):
+    if config.get('clip_negative_after_background', True):
         y_processed = np.clip(
             y_processed,
             0,
             None,
         )
 
-    normalization = str(config.get("normalization", "none")).lower()
+    normalization = str(config.get('normalization', 'none')).lower()
 
-    if normalization == "max":
-
+    if normalization == 'max':
         maximum = np.nanmax(y_processed)
 
         if maximum > 0:
             y_processed = y_processed / maximum
 
-    elif normalization != "none":
-
+    elif normalization != 'none':
         raise ValueError("Normalization must be 'none' or 'max'.")
 
     # --------------------------------------------------------
     # Smoothing
     # --------------------------------------------------------
 
-    if config["smoothing_enabled"]:
-
+    if config['smoothing_enabled']:
         smoothed_y = smooth_xrd_pattern(
             y_processed,
-            window_length=int(config["smoothing_window"]),
-            polyorder=int(config["smoothing_polyorder"]),
+            window_length=int(config['smoothing_window']),
+            polyorder=int(config['smoothing_polyorder']),
         )
 
     else:
@@ -615,16 +597,16 @@ def detect_peaks(  # noqa: PLR0912, PLR0915
     if not np.isfinite(step_size) or step_size <= 0:
         return []
 
-    prominence_fraction = float(config["prominence_fraction"])
+    prominence_fraction = float(config['prominence_fraction'])
 
-    minimum_prominence = float(config["minimum_prominence"])
+    minimum_prominence = float(config['minimum_prominence'])
 
     prominence_threshold = max(
         intensity_range * prominence_fraction,
         minimum_prominence,
     )
 
-    minimum_distance_deg = float(config["minimum_distance_deg"])
+    minimum_distance_deg = float(config['minimum_distance_deg'])
 
     minimum_distance_samples = max(
         1,
@@ -668,18 +650,17 @@ def detect_peaks(  # noqa: PLR0912, PLR0915
 
     width_degrees = right_positions - left_positions
 
-    relative_prominence = properties["prominences"] / intensity_range
+    relative_prominence = properties['prominences'] / intensity_range
 
     # --------------------------------------------------------
     # Construct results
     # --------------------------------------------------------
 
-    minimum_width_deg = float(config["minimum_width_deg"])
+    minimum_width_deg = float(config['minimum_width_deg'])
 
     results = []
 
     for index, peak_index in enumerate(peaks):
-
         width = float(width_degrees[index])
 
         if width < minimum_width_deg:
@@ -687,15 +668,15 @@ def detect_peaks(  # noqa: PLR0912, PLR0915
 
         results.append(
             {
-                "two_theta_deg": float(x[peak_index]),
-                "intensity": float(y_processed[peak_index]),
-                "smoothed_intensity": float(smoothed_y[peak_index]),
-                "prominence": float(properties["prominences"][index]),
-                "relative_prominence": float(relative_prominence[index]),
-                "width_deg": width,
-                "width_samples": float(widths[index]),
-                "left_width_deg": float(left_positions[index]),
-                "right_width_deg": float(right_positions[index]),
+                'two_theta_deg': float(x[peak_index]),
+                'intensity': float(y_processed[peak_index]),
+                'smoothed_intensity': float(smoothed_y[peak_index]),
+                'prominence': float(properties['prominences'][index]),
+                'relative_prominence': float(relative_prominence[index]),
+                'width_deg': width,
+                'width_samples': float(widths[index]),
+                'left_width_deg': float(left_positions[index]),
+                'right_width_deg': float(right_positions[index]),
             }
         )
 
@@ -713,18 +694,17 @@ def create_peak_sections(peak_results):
     output = []
 
     for result in peak_results:
-
         peak = XRDPeak()
 
-        peak.two_theta_deg = result["two_theta_deg"]
-        peak.intensity = result["intensity"]
-        peak.smoothed_intensity = result["smoothed_intensity"]
-        peak.prominence = result["prominence"]
-        peak.relative_prominence = result["relative_prominence"]
-        peak.width_deg = result["width_deg"]
-        peak.width_samples = result["width_samples"]
-        peak.left_width_deg = result["left_width_deg"]
-        peak.right_width_deg = result["right_width_deg"]
+        peak.two_theta_deg = result['two_theta_deg']
+        peak.intensity = result['intensity']
+        peak.smoothed_intensity = result['smoothed_intensity']
+        peak.prominence = result['prominence']
+        peak.relative_prominence = result['relative_prominence']
+        peak.width_deg = result['width_deg']
+        peak.width_samples = result['width_samples']
+        peak.left_width_deg = result['left_width_deg']
+        peak.right_width_deg = result['right_width_deg']
 
         output.append(peak)
 
@@ -746,38 +726,36 @@ def create_pattern_sections(
     total_peaks = 0
 
     for record in records:
-
         pattern = XRDPattern()
 
-        phi, x_mm, y_mm = record["position"]
+        phi, x_mm, y_mm = record['position']
 
-        pattern.source_filename = record["source_filename"]
-        pattern.position_label = record["position_label"]
+        pattern.source_filename = record['source_filename']
+        pattern.position_label = record['position_label']
 
         pattern.phi_deg = float(phi)
         pattern.x_mm = float(x_mm)
         pattern.y_mm = float(y_mm)
 
         pattern.two_theta_deg = np.asarray(
-            record["two_theta"],
+            record['two_theta'],
             dtype=float,
         )
 
         pattern.intensity = np.asarray(
-            record["intensity"],
+            record['intensity'],
             dtype=float,
         )
 
-        if record["uncertainty"] is not None:
-
+        if record['uncertainty'] is not None:
             pattern.uncertainty = np.asarray(
-                record["uncertainty"],
+                record['uncertainty'],
                 dtype=float,
             )
 
         peak_results = detect_peaks(
-            record["two_theta"],
-            record["intensity"],
+            record['two_theta'],
+            record['intensity'],
             detection_config,
         )
 
@@ -786,8 +764,8 @@ def create_pattern_sections(
         total_peaks += len(peak_results)
 
         logger.info(
-            "%s: detected %d peaks.",
-            record["position_label"],
+            '%s: detected %d peaks.',
+            record['position_label'],
             len(peak_results),
         )
 
@@ -834,14 +812,14 @@ def create_xrd_run(
 
     run.peak_detection_enabled = True
 
-    run.smoothing_enabled = detection_config["smoothing_enabled"]
-    run.smoothing_window = detection_config["smoothing_window"]
-    run.smoothing_polyorder = detection_config["smoothing_polyorder"]
+    run.smoothing_enabled = detection_config['smoothing_enabled']
+    run.smoothing_window = detection_config['smoothing_window']
+    run.smoothing_polyorder = detection_config['smoothing_polyorder']
 
-    run.prominence_fraction = detection_config["prominence_fraction"]
-    run.minimum_prominence = detection_config["minimum_prominence"]
-    run.minimum_distance_deg = detection_config["minimum_distance_deg"]
-    run.minimum_width_deg = detection_config["minimum_width_deg"]
+    run.prominence_fraction = detection_config['prominence_fraction']
+    run.minimum_prominence = detection_config['minimum_prominence']
+    run.minimum_distance_deg = detection_config['minimum_distance_deg']
+    run.minimum_width_deg = detection_config['minimum_width_deg']
 
     run.patterns = patterns
 
@@ -870,14 +848,14 @@ class XRDParser(MatchingParser):
         log = logger or logging.getLogger(__name__)
 
         log.info(
-            "Reading XRD measurement: %s",
+            'Reading XRD measurement: %s',
             mainfile,
         )
 
         records, input_format = load_xrd_files(mainfile)
 
         log.info(
-            "Loaded %d spatial XRD patterns.",
+            'Loaded %d spatial XRD patterns.',
             len(records),
         )
 
@@ -890,12 +868,12 @@ class XRDParser(MatchingParser):
         archive.data = run
 
         log.info(
-            "Successfully parsed XRD experiment: %s",
+            'Successfully parsed XRD experiment: %s',
             run.source_filename,
         )
 
         log.info(
-            "Total spatial patterns: %d; detected peaks: %d.",
+            'Total spatial patterns: %d; detected peaks: %d.',
             run.number_of_patterns,
             run.number_of_detected_peaks,
         )

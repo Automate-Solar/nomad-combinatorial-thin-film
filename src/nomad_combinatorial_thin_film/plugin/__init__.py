@@ -30,25 +30,25 @@ class XrdSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 image_schema_package_entry_point = ImageSchemaPackageEntryPoint(
-    name="ImagePlugin",
-    description="Schema package for image analysis with metadata, ROI, and dimensions.",
+    name='ImagePlugin',
+    description='Schema package for image analysis with metadata, ROI, and dimensions.',
 )
 
 
 hyperspectral_schema_package_entry_point = HyperspectralSchemaPackageEntryPoint(
-    name="HyperspectralPlugin",
-    description="Schema package for hyperspectral image datasets.",
+    name='HyperspectralPlugin',
+    description='Schema package for hyperspectral image datasets.',
 )
 
 
 sputtering_schema_package_entry_point = SputteringSchemaPackageEntryPoint(
-    name="UppsalaSputteringPlugin",
-    description="Schema package for Uppsala sputtering data.",
+    name='UppsalaSputteringPlugin',
+    description='Schema package for Uppsala sputtering data.',
 )
 
 xrd_schema_package_entry_point = XrdSchemaPackageEntryPoint(
-    name="DTUXRDMeasurement",
-    description="Schema package for DTU X-ray diffraction measurements.",
+    name='DTUXRDMeasurement',
+    description='Schema package for DTU X-ray diffraction measurements.',
 )
 
 
@@ -63,13 +63,12 @@ class ExperimentPlanSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 experiment_plan_schema_package_entry_point = ExperimentPlanSchemaPackageEntryPoint(
-    name="UppsalaSputteringExperimentPlan",
-    description="Schema package for sputtering experiment plans and predicted profiles.",
+    name='UppsalaSputteringExperimentPlan',
+    description='Schema package for sputtering experiment plans and predicted profiles.',
 )
 
 
 class SulfurizationSchemaPackageEntryPoint(SchemaPackageEntryPoint):
-
     def load(self):
         from nomad_combinatorial_thin_film.plugin.sulfurization import (
             m_package,
@@ -79,10 +78,10 @@ class SulfurizationSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 sulfurization_schema_package_entry_point = SulfurizationSchemaPackageEntryPoint(
-    name="SulfurizationSchema",
+    name='SulfurizationSchema',
     description=(
-        "Schema for PicoLog sulfurization measurements "
-        "and temperature stability analysis."
+        'Schema for PicoLog sulfurization measurements '
+        'and temperature stability analysis.'
     ),
 )
 
@@ -95,9 +94,9 @@ class XRDSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 xrd_schema_package_entry_point = XRDSchemaPackageEntryPoint(
-    name="XRDSchema",
+    name='XRDSchema',
     description=(
-        "Schema for spatially resolved XRD measurements "
-        "and experimental peak detection."
+        'Schema for spatially resolved XRD measurements '
+        'and experimental peak detection.'
     ),
 )

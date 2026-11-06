@@ -28,7 +28,7 @@ def test_parse_experiment_plan_and_profiles():
         'Cu_fract_(cosine_old)': [Double('0.2'), Double('0.17'), Double('0.14')] } }
     """
     result = parse_experiment_plan_document(text)
-    assert result.sample_id == "sample-1"
+    assert result.sample_id == 'sample-1'
     assert result.system_state.system_config_id == EXPECTED_CONFIG_ID
     assert result.recipe.source_1_set_power_w == EXPECTED_POWER_W
     assert list(result.x_profile.x) == [-1, 0, 1]
@@ -40,8 +40,8 @@ def test_missing_required_documents_is_reported():
     try:
         parse_experiment_plan_document("{ sample_id: 'only-plan' }")
     except ValueError as error:
-        assert "experiment document" in str(error)
+        assert 'experiment document' in str(error)
     else:
         raise AssertionError(
-            "Expected a ValueError when no recipe document is supplied"
+            'Expected a ValueError when no recipe document is supplied'
         )

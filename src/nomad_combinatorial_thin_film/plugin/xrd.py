@@ -13,10 +13,10 @@ from plotly.colors import hex_to_rgb, qualitative
 from plotly.subplots import make_subplots
 
 m_package = Package(
-    name="Uppsala XRD Analysis",
+    name='Uppsala XRD Analysis',
     description=(
-        "Spatially resolved XRD measurements, "
-        "experimental peak detection and visualization."
+        'Spatially resolved XRD measurements, '
+        'experimental peak detection and visualization.'
     ),
 )
 
@@ -35,51 +35,51 @@ class XRDPeak(ArchiveSection):
 
     two_theta_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Peak position in 2-theta.",
+        unit='degree',
+        description='Peak position in 2-theta.',
     )
 
     intensity = Quantity(
         type=np.float64,
-        description="Measured intensity at the detected peak.",
+        description='Measured intensity at the detected peak.',
     )
 
     smoothed_intensity = Quantity(
         type=np.float64,
-        description="Smoothed intensity at the detected peak.",
+        description='Smoothed intensity at the detected peak.',
     )
 
     prominence = Quantity(
         type=np.float64,
-        description="Absolute peak prominence.",
+        description='Absolute peak prominence.',
     )
 
     relative_prominence = Quantity(
         type=np.float64,
-        description="Peak prominence divided by the intensity range.",
+        description='Peak prominence divided by the intensity range.',
     )
 
     width_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Peak width at half prominence.",
+        unit='degree',
+        description='Peak width at half prominence.',
     )
 
     width_samples = Quantity(
         type=np.float64,
-        description="Peak width expressed in sampling points.",
+        description='Peak width expressed in sampling points.',
     )
 
     left_width_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Left position of the peak width.",
+        unit='degree',
+        description='Left position of the peak width.',
     )
 
     right_width_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Right position of the peak width.",
+        unit='degree',
+        description='Right position of the peak width.',
     )
 
 
@@ -95,15 +95,15 @@ class XRDPattern(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "source_filename",
-                    "position_label",
-                    "phi_deg",
-                    "x_mm",
-                    "y_mm",
-                    "two_theta_deg",
-                    "intensity",
-                    "uncertainty",
-                    "peaks",
+                    'source_filename',
+                    'position_label',
+                    'phi_deg',
+                    'x_mm',
+                    'y_mm',
+                    'two_theta_deg',
+                    'intensity',
+                    'uncertainty',
+                    'peaks',
                 ]
             )
         )
@@ -111,49 +111,49 @@ class XRDPattern(ArchiveSection):
 
     source_filename = Quantity(
         type=str,
-        description="Original ASC or XRDML filename.",
+        description='Original ASC or XRDML filename.',
     )
 
     position_label = Quantity(
         type=str,
-        description="Position label extracted from the filename.",
+        description='Position label extracted from the filename.',
     )
 
     phi_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Sample rotation angle phi.",
+        unit='degree',
+        description='Sample rotation angle phi.',
     )
 
     x_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="X measurement coordinate.",
+        unit='mm',
+        description='X measurement coordinate.',
     )
 
     y_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Y measurement coordinate.",
+        unit='mm',
+        description='Y measurement coordinate.',
     )
 
     two_theta_deg = Quantity(
         type=np.float64,
-        shape=["*"],
-        unit="degree",
-        description="Experimental 2-theta values.",
+        shape=['*'],
+        unit='degree',
+        description='Experimental 2-theta values.',
     )
 
     intensity = Quantity(
         type=np.float64,
-        shape=["*"],
-        description="Original measured XRD intensity.",
+        shape=['*'],
+        description='Original measured XRD intensity.',
     )
 
     uncertainty = Quantity(
         type=np.float64,
-        shape=["*"],
-        description="Intensity uncertainty, when provided by the input file.",
+        shape=['*'],
+        description='Intensity uncertainty, when provided by the input file.',
     )
 
     peaks = SubSection(
@@ -171,29 +171,29 @@ class XRDRun(EntryData, PlotSection):
     """Spatially resolved XRD experiment."""
 
     m_def = Section(
-        label="Spatially Resolved XRD Experiment",
+        label='Spatially Resolved XRD Experiment',
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "source_filename",
-                    "condition_label",
-                    "input_format",
-                    "number_of_patterns",
-                    "number_of_detected_peaks",
-                    "peak_detection_enabled",
-                    "smoothing_enabled",
-                    "smoothing_window",
-                    "smoothing_polyorder",
-                    "prominence_fraction",
-                    "minimum_prominence",
-                    "minimum_distance_deg",
-                    "minimum_width_deg",
-                    "patterns",
-                    "film_diameter_mm",
-                    "notch_width_mm",
-                    "notch_depth_mm",
-                    "measurement_width_mm",
-                    "measurement_height_mm",
+                    'source_filename',
+                    'condition_label',
+                    'input_format',
+                    'number_of_patterns',
+                    'number_of_detected_peaks',
+                    'peak_detection_enabled',
+                    'smoothing_enabled',
+                    'smoothing_window',
+                    'smoothing_polyorder',
+                    'prominence_fraction',
+                    'minimum_prominence',
+                    'minimum_distance_deg',
+                    'minimum_width_deg',
+                    'patterns',
+                    'film_diameter_mm',
+                    'notch_width_mm',
+                    'notch_depth_mm',
+                    'measurement_width_mm',
+                    'measurement_height_mm',
                 ]
             )
         ),
@@ -201,70 +201,70 @@ class XRDRun(EntryData, PlotSection):
 
     source_filename = Quantity(
         type=str,
-        description="Uploaded XRD file or ZIP archive.",
+        description='Uploaded XRD file or ZIP archive.',
     )
 
     condition_label = Quantity(
         type=str,
-        description="Experimental condition derived from the uploaded filename.",
-        a_eln=ELNAnnotation(component="StringEditQuantity"),
+        description='Experimental condition derived from the uploaded filename.',
+        a_eln=ELNAnnotation(component='StringEditQuantity'),
     )
 
     input_format = Quantity(
         type=str,
-        description="Original XRD input format.",
+        description='Original XRD input format.',
     )
 
     number_of_patterns = Quantity(
         type=int,
-        description="Number of spatial XRD patterns.",
+        description='Number of spatial XRD patterns.',
     )
 
     number_of_detected_peaks = Quantity(
         type=int,
-        description="Total number of detected experimental peaks.",
+        description='Total number of detected experimental peaks.',
     )
 
     peak_detection_enabled = Quantity(
         type=bool,
-        description="Whether experimental peak detection was performed.",
+        description='Whether experimental peak detection was performed.',
     )
 
     smoothing_enabled = Quantity(
         type=bool,
-        description="Whether Savitzky-Golay smoothing was enabled.",
+        description='Whether Savitzky-Golay smoothing was enabled.',
     )
 
     smoothing_window = Quantity(
         type=int,
-        description="Savitzky-Golay smoothing window length.",
+        description='Savitzky-Golay smoothing window length.',
     )
 
     smoothing_polyorder = Quantity(
         type=int,
-        description="Savitzky-Golay polynomial order.",
+        description='Savitzky-Golay polynomial order.',
     )
 
     prominence_fraction = Quantity(
         type=np.float64,
-        description="Fraction of the intensity range used for peak prominence.",
+        description='Fraction of the intensity range used for peak prominence.',
     )
 
     minimum_prominence = Quantity(
         type=np.float64,
-        description="Minimum absolute peak prominence.",
+        description='Minimum absolute peak prominence.',
     )
 
     minimum_distance_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Minimum separation between detected peaks.",
+        unit='degree',
+        description='Minimum separation between detected peaks.',
     )
 
     minimum_width_deg = Quantity(
         type=np.float64,
-        unit="degree",
-        description="Minimum accepted peak width.",
+        unit='degree',
+        description='Minimum accepted peak width.',
     )
 
     patterns = SubSection(
@@ -277,37 +277,37 @@ class XRDRun(EntryData, PlotSection):
     # and explicitly labelled "not to scale".
     film_diameter_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Physical film diameter. Leave empty for an automatically sized schematic.",
-        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+        unit='mm',
+        description='Physical film diameter. Leave empty for an automatically sized schematic.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     notch_width_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Width of the north notch. Leave empty for a schematic default.",
-        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+        unit='mm',
+        description='Width of the north notch. Leave empty for a schematic default.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     notch_depth_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Depth of the north notch. Leave empty for a schematic default.",
-        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+        unit='mm',
+        description='Depth of the north notch. Leave empty for a schematic default.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     measurement_width_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Width of each XRD measurement footprint. Leave empty for a schematic default.",
-        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+        unit='mm',
+        description='Width of each XRD measurement footprint. Leave empty for a schematic default.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     measurement_height_mm = Quantity(
         type=np.float64,
-        unit="mm",
-        description="Height of each XRD measurement footprint. Leave empty for a schematic default.",
-        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+        unit='mm',
+        description='Height of each XRD measurement footprint. Leave empty for a schematic default.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     # ========================================================
@@ -318,14 +318,14 @@ class XRDRun(EntryData, PlotSection):
         """Create one Plotly canvas with raw, normalized, log grids and a film map."""
 
         def as_float_array(value):
-            if hasattr(value, "magnitude"):
+            if hasattr(value, 'magnitude'):
                 value = value.magnitude
             return np.asarray(value, dtype=float)
 
         def optional_float(value):
             if value is None:
                 return None
-            if hasattr(value, "magnitude"):
+            if hasattr(value, 'magnitude'):
                 value = value.magnitude
             try:
                 result = float(value)
@@ -352,19 +352,19 @@ class XRDRun(EntryData, PlotSection):
         total_rows = 3 * nrows + 1
 
         specs = [[{} for _ in range(ncols)] for _ in range(3 * nrows)]
-        specs.append([{"colspan": ncols}] + [None] * (ncols - 1))
+        specs.append([{'colspan': ncols}] + [None] * (ncols - 1))
 
         titles = []
-        for mode in ("RAW INTENSITY", "NORMALIZED INTENSITY", "LOG INTENSITY"):
+        for mode in ('RAW INTENSITY', 'NORMALIZED INTENSITY', 'LOG INTENSITY'):
             for row_index in range(nrows):
                 for col_index in range(ncols):
                     pattern_index = row_index * ncols + col_index
                     titles.append(
-                        f"{mode}<br>{patterns[pattern_index].position_label}"
+                        f'{mode}<br>{patterns[pattern_index].position_label}'
                         if pattern_index < n_patterns
-                        else ""
+                        else ''
                     )
-        titles.append("CIRCULAR FILM AND MEASUREMENT POSITIONS")
+        titles.append('CIRCULAR FILM AND MEASUREMENT POSITIONS')
 
         fig = make_subplots(
             rows=total_rows,
@@ -400,27 +400,27 @@ class XRDRun(EntryData, PlotSection):
 
                 if mode_index == 0:
                     plotted_y = y
-                    y_title = "Counts"
+                    y_title = 'Counts'
                 elif mode_index == 1:
                     scale = np.nanmax(np.abs(y)) if y.size else 0.0
                     plotted_y = y / scale if np.isfinite(scale) and scale > 0 else y
-                    y_title = "I / max(|I|)"
+                    y_title = 'I / max(|I|)'
                 else:
                     plotted_y = np.where(y > 0, y, np.nan)
-                    y_title = "Counts (log)"
+                    y_title = 'Counts (log)'
 
                 fig.add_trace(
                     go.Scatter(
                         x=x,
                         y=plotted_y,
-                        mode="lines",
+                        mode='lines',
                         name=pattern.position_label,
                         line=dict(color=color, width=1.25),
                         showlegend=False,
                         connectgaps=False,
                         hovertemplate=(
-                            f"{pattern.position_label}<br>"
-                            "2θ: %{x:.3f}°<br>I: %{y:.4g}<extra></extra>"
+                            f'{pattern.position_label}<br>'
+                            '2θ: %{x:.3f}°<br>I: %{y:.4g}<extra></extra>'
                         ),
                     ),
                     row=row,
@@ -431,16 +431,20 @@ class XRDRun(EntryData, PlotSection):
                 if mode_index == 0 and pattern.peaks:
                     px = [optional_float(p.two_theta_deg) for p in pattern.peaks]
                     py = [optional_float(p.intensity) for p in pattern.peaks]
-                    valid = [(a, b) for a, b in zip(px, py) if a is not None and b is not None]
+                    valid = [
+                        (a, b)
+                        for a, b in zip(px, py)
+                        if a is not None and b is not None
+                    ]
                     if valid:
                         fig.add_trace(
                             go.Scatter(
                                 x=[v[0] for v in valid],
                                 y=[v[1] for v in valid],
-                                mode="markers",
-                                marker=dict(color=color, size=5, symbol="x"),
+                                mode='markers',
+                                marker=dict(color=color, size=5, symbol='x'),
                                 showlegend=False,
-                                hovertemplate="Detected peak<br>2θ: %{x:.3f}°<extra></extra>",
+                                hovertemplate='Detected peak<br>2θ: %{x:.3f}°<extra></extra>',
                             ),
                             row=row,
                             col=col,
@@ -449,21 +453,21 @@ class XRDRun(EntryData, PlotSection):
                 fig.update_xaxes(
                     range=[x_min, x_max],
                     showgrid=True,
-                    gridcolor="rgba(180,180,180,0.25)",
+                    gridcolor='rgba(180,180,180,0.25)',
                     row=row,
                     col=col,
                 )
                 fig.update_yaxes(
                     title_text=y_title,
                     showgrid=True,
-                    gridcolor="rgba(180,180,180,0.25)",
+                    gridcolor='rgba(180,180,180,0.25)',
                     row=row,
                     col=col,
                 )
                 if mode_index == LOG_INTENSITY_MODE_INDEX:
-                    fig.update_yaxes(type="log", row=row, col=col)
+                    fig.update_yaxes(type='log', row=row, col=col)
                 if index // ncols == nrows - 1:
-                    fig.update_xaxes(title_text="2θ (°)", row=row, col=col)
+                    fig.update_xaxes(title_text='2θ (°)', row=row, col=col)
 
         # Spatial schematic. Filename coordinates are the rectangle centres.
         points = []
@@ -474,9 +478,7 @@ class XRDRun(EntryData, PlotSection):
             if x is not None and y is not None:
                 points.append((p, x, y, phi))
 
-        max_coord = max(
-            [max(abs(x), abs(y)) for _, x, y, _ in points] or [10.0]
-        )
+        max_coord = max([max(abs(x), abs(y)) for _, x, y, _ in points] or [10.0])
         diameter = optional_float(self.film_diameter_mm)
         notch_width = optional_float(self.notch_width_mm)
         notch_depth = optional_float(self.notch_depth_mm)
@@ -488,11 +490,23 @@ class XRDRun(EntryData, PlotSection):
             for v in (diameter, notch_width, notch_depth, rect_width, rect_height)
         )
 
-        radius = diameter / 2 if diameter and diameter > 0 else max(max_coord + 3.0, 5.0)
-        notch_width = notch_width if notch_width and notch_width > 0 else max(0.12 * radius, 0.8)
-        notch_depth = notch_depth if notch_depth and notch_depth > 0 else max(0.07 * radius, 0.5)
-        rect_width = rect_width if rect_width and rect_width > 0 else max(0.075 * radius, 0.8)
-        rect_height = rect_height if rect_height and rect_height > 0 else max(0.035 * radius, 0.45)
+        radius = (
+            diameter / 2 if diameter and diameter > 0 else max(max_coord + 3.0, 5.0)
+        )
+        notch_width = (
+            notch_width if notch_width and notch_width > 0 else max(0.12 * radius, 0.8)
+        )
+        notch_depth = (
+            notch_depth if notch_depth and notch_depth > 0 else max(0.07 * radius, 0.5)
+        )
+        rect_width = (
+            rect_width if rect_width and rect_width > 0 else max(0.075 * radius, 0.8)
+        )
+        rect_height = (
+            rect_height
+            if rect_height and rect_height > 0
+            else max(0.035 * radius, 0.45)
+        )
 
         half_notch = min(notch_width / 2, radius * 0.45)
         notch_y = np.sqrt(max(radius**2 - half_notch**2, 0.0))
@@ -500,10 +514,16 @@ class XRDRun(EntryData, PlotSection):
         theta1 = 2 * np.pi + np.pi / 2 - np.arcsin(half_notch / radius)
         theta = np.linspace(theta0, theta1, 240)
         film_x = list(radius * np.cos(theta)) + [
-            half_notch, half_notch, -half_notch, -half_notch
+            half_notch,
+            half_notch,
+            -half_notch,
+            -half_notch,
         ]
         film_y = list(radius * np.sin(theta)) + [
-            notch_y, radius - notch_depth, radius - notch_depth, notch_y
+            notch_y,
+            radius - notch_depth,
+            radius - notch_depth,
+            notch_y,
         ]
 
         map_row = total_rows
@@ -511,13 +531,13 @@ class XRDRun(EntryData, PlotSection):
             go.Scatter(
                 x=film_x,
                 y=film_y,
-                mode="lines",
-                fill="toself",
-                fillcolor="rgba(180,190,205,0.22)",
-                line=dict(color="#263238", width=2.5),
-                name="Film boundary",
+                mode='lines',
+                fill='toself',
+                fillcolor='rgba(180,190,205,0.22)',
+                line=dict(color='#263238', width=2.5),
+                name='Film boundary',
                 showlegend=False,
-                hoverinfo="skip",
+                hoverinfo='skip',
             ),
             row=map_row,
             col=1,
@@ -545,21 +565,21 @@ class XRDRun(EntryData, PlotSection):
 
             # Plotly qualitative palettes are normally hexadecimal colours.
             red, green, blue = hex_to_rgb(color)
-            fill = f"rgba({red},{green},{blue},0.30)"
+            fill = f'rgba({red},{green},{blue},0.30)'
 
             fig.add_trace(
                 go.Scatter(
                     x=rx,
                     y=ry,
-                    mode="lines",
-                    fill="toself",
+                    mode='lines',
+                    fill='toself',
                     fillcolor=fill,
                     line=dict(color=color, width=2),
                     name=p.position_label,
                     showlegend=False,
                     hovertemplate=(
-                        f"{p.position_label}<br>X={cx:g} mm<br>"
-                        f"Y={cy:g} mm<br>φ={phi:g}°<extra></extra>"
+                        f'{p.position_label}<br>X={cx:g} mm<br>'
+                        f'Y={cy:g} mm<br>φ={phi:g}°<extra></extra>'
                     ),
                 ),
                 row=map_row,
@@ -569,10 +589,10 @@ class XRDRun(EntryData, PlotSection):
                 go.Scatter(
                     x=[cx],
                     y=[cy],
-                    mode="markers",
-                    marker=dict(color=color, size=6, line=dict(color="white", width=1)),
+                    mode='markers',
+                    marker=dict(color=color, size=6, line=dict(color='white', width=1)),
                     showlegend=False,
-                    hoverinfo="skip",
+                    hoverinfo='skip',
                 ),
                 row=map_row,
                 col=1,
@@ -580,7 +600,7 @@ class XRDRun(EntryData, PlotSection):
 
         map_limit = max(radius * 1.18, max_coord + rect_width + 1.0)
         fig.update_xaxes(
-            title_text="X (mm)",
+            title_text='X (mm)',
             range=[-map_limit, map_limit],
             showgrid=True,
             zeroline=True,
@@ -588,11 +608,11 @@ class XRDRun(EntryData, PlotSection):
             col=1,
         )
         fig.update_yaxes(
-            title_text="Y (mm)",
+            title_text='Y (mm)',
             range=[-map_limit, map_limit],
             showgrid=True,
             zeroline=True,
-            scaleanchor=f"x{(map_row - 1) * ncols + 1}",
+            scaleanchor=f'x{(map_row - 1) * ncols + 1}',
             scaleratio=1,
             row=map_row,
             col=1,
@@ -602,37 +622,37 @@ class XRDRun(EntryData, PlotSection):
         fig.add_annotation(
             x=0.97,
             y=0.95,
-            xref=f"x{map_axis} domain",
-            yref=f"y{map_axis} domain",
-            text="N ↑",
+            xref=f'x{map_axis} domain',
+            yref=f'y{map_axis} domain',
+            text='N ↑',
             showarrow=False,
-            font=dict(size=15, color="#263238"),
+            font=dict(size=15, color='#263238'),
         )
         note = (
-            "Dimensions supplied"
+            'Dimensions supplied'
             if dimensions_supplied
-            else "SCHEMATIC — NOT TO SCALE. Set film diameter, notch and footprint dimensions in the ELN fields."
+            else 'SCHEMATIC — NOT TO SCALE. Set film diameter, notch and footprint dimensions in the ELN fields.'
         )
         fig.add_annotation(
             x=0.5,
             y=0.02,
-            xref=f"x{map_axis} domain",
-            yref=f"y{map_axis} domain",
+            xref=f'x{map_axis} domain',
+            yref=f'y{map_axis} domain',
             text=note,
             showarrow=False,
-            font=dict(size=11, color="#555"),
+            font=dict(size=11, color='#555'),
         )
 
         fig.update_layout(
             title=(
-                "Spatially Resolved XRD: Raw, Normalized and Log Intensity "
-                "with Sample Measurement Map"
+                'Spatially Resolved XRD: Raw, Normalized and Log Intensity '
+                'with Sample Measurement Map'
             ),
-            template="plotly_white",
+            template='plotly_white',
             width=1800,
             height=max(2100, 260 * total_rows),
             margin=dict(l=65, r=35, t=110, b=55),
-            hovermode="closest",
+            hovermode='closest',
             showlegend=False,
             font=dict(size=10),
         )
@@ -640,7 +660,7 @@ class XRDRun(EntryData, PlotSection):
         # Exactly one PlotlyFigure is attached to this NOMAD archive entry.
         self.figures = [
             PlotlyFigure(
-                label="Complete XRD Archive Plot",
+                label='Complete XRD Archive Plot',
                 figure=fig.to_plotly_json(),
             )
         ]

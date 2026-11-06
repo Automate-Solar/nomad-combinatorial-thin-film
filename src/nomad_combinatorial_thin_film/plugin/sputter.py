@@ -31,7 +31,7 @@ class UppsalaSputteringInstruments(InstrumentReference, ArchiveSection):
 
     system_status_number = Quantity(
         type=int,
-        description="The system status number of the instrument.",
+        description='The system status number of the instrument.',
         a_eln=ELNAnnotation(component=ELNComponentEnum.NumberEditQuantity),
     )
 
@@ -46,7 +46,7 @@ class UppsalaSputteringInstruments(InstrumentReference, ArchiveSection):
     # by checking if a certain quantiy is filled or boolean is set to true before starting the
     # parsing of the files
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """
         The normalizer for the `InstrumentParameters` class.
 
@@ -64,44 +64,44 @@ class UppsalaSputteringInstruments(InstrumentReference, ArchiveSection):
 class UppsalaSputtering(DTUSputtering, PlotSection, Schema):
     m_def = Section(
         categories=[Uppsala],
-        label="Sputtering",
-        links=["http://purl.obolibrary.org/obo/CHMO_0001328"],
+        label='Sputtering',
+        links=['http://purl.obolibrary.org/obo/CHMO_0001328'],
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "lab_id",
-                    "log_file",
-                    "base_pressure",
-                    "location",
-                    "process_logfile",
-                    "overwrite",
-                    "deposition_parameters",
-                    "substrates",
-                    "samples",
-                    "steps",
-                    "source_ramp_up",
-                    "source_presput",
-                    "source_deprate",
-                    "instruments",
-                    "flags",
+                    'lab_id',
+                    'log_file',
+                    'base_pressure',
+                    'location',
+                    'process_logfile',
+                    'overwrite',
+                    'deposition_parameters',
+                    'substrates',
+                    'samples',
+                    'steps',
+                    'source_ramp_up',
+                    'source_presput',
+                    'source_deprate',
+                    'instruments',
+                    'flags',
                 ],
                 visible=Filter(
                     exclude=[
-                        "sulfur_partial_pressure",
-                        "end_of_process",
-                        "sulfur_cracker_pressure",
-                        "cracker_warmup_log_file",
-                        "target_image_before",
-                        "target_image_after",
-                        "plasma_image",
-                        "sample_image",
-                        "optix_spectra",
-                        "rga_file",
-                        "temperature_ramp_up",
-                        "temperature_ramp_down",
-                        "optix_power_type",
-                        "optix_current",
-                        "platen_used",
+                        'sulfur_partial_pressure',
+                        'end_of_process',
+                        'sulfur_cracker_pressure',
+                        'cracker_warmup_log_file',
+                        'target_image_before',
+                        'target_image_after',
+                        'plasma_image',
+                        'sample_image',
+                        'optix_spectra',
+                        'rga_file',
+                        'temperature_ramp_up',
+                        'temperature_ramp_down',
+                        'optix_power_type',
+                        'optix_current',
+                        'platen_used',
                     ]
                 ),
             ),

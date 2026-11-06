@@ -25,27 +25,27 @@ class DataRootParser(MatchingParser):
     def parse(
         self,
         mainfile: str,
-        archive: "EntryArchive",
+        archive: 'EntryArchive',
         logger=None,
         child_archives=None,
     ) -> None:
         log = logger or logger_module
 
         if archive.data is not None:
-            log.debug("Archive already has data, skipping parse")
+            log.debug('Archive already has data, skipping parse')
             return
 
         data_root = Path(mainfile).parent
-        log.info("Parsing image sample folder: %s", data_root)
+        log.info('Parsing image sample folder: %s', data_root)
 
         try:
             dataset = ImageDataset()
-            dataset.name = f"Image Dataset from {data_root.name}"
+            dataset.name = f'Image Dataset from {data_root.name}'
 
             synthesis_json = find_synthesis_json(data_root)
             if synthesis_json:
                 dataset.synthesis_conditions = parse_synthesis_json(synthesis_json, log)
-                log.info("Parsed synthesis conditions from %s", synthesis_json.name)
+                log.info('Parsed synthesis conditions from %s', synthesis_json.name)
 
             experiments = []
             for image_folder in find_image_folders(data_root):
@@ -54,7 +54,7 @@ class DataRootParser(MatchingParser):
                     experiments.append(experiment)
 
             if not experiments:
-                log.warning("No image data folders found in %s", data_root)
+                log.warning('No image data folders found in %s', data_root)
                 archive.data = dataset
                 return
 
@@ -63,9 +63,9 @@ class DataRootParser(MatchingParser):
             archive.data = dataset
 
             log.info(
-                "Successfully created dataset with %d image measurements",
+                'Successfully created dataset with %d image measurements',
                 len(experiments),
             )
 
         except Exception as exc:
-            log.error("Error parsing image sample folder: %s", str(exc), exc_info=True)
+            log.error('Error parsing image sample folder: %s', str(exc), exc_info=True)

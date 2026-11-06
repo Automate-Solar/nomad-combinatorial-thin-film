@@ -30,8 +30,8 @@ if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
 
 m_package = Package(
-    name="Image Analysis Schema",
-    description="Schema for storing image analysis results and metadata in NOMAD.",
+    name='Image Analysis Schema',
+    description='Schema for storing image analysis results and metadata in NOMAD.',
 )
 
 
@@ -45,12 +45,12 @@ class BoundingBox(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "x_min",
-                    "y_min",
-                    "x_max",
-                    "y_max",
-                    "width",
-                    "height",
+                    'x_min',
+                    'y_min',
+                    'x_max',
+                    'y_max',
+                    'width',
+                    'height',
                 ],
             ),
         ),
@@ -58,53 +58,53 @@ class BoundingBox(ArchiveSection):
 
     x_min = Quantity(
         type=int,
-        description="Minimum X coordinate (left edge) in pixels",
+        description='Minimum X coordinate (left edge) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     y_min = Quantity(
         type=int,
-        description="Minimum Y coordinate (top edge) in pixels",
+        description='Minimum Y coordinate (top edge) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     x_max = Quantity(
         type=int,
-        description="Maximum X coordinate (right edge) in pixels",
+        description='Maximum X coordinate (right edge) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     y_max = Quantity(
         type=int,
-        description="Maximum Y coordinate (bottom edge) in pixels",
+        description='Maximum Y coordinate (bottom edge) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     width = Quantity(
         type=int,
-        description="Width of bounding box in pixels",
+        description='Width of bounding box in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     height = Quantity(
         type=int,
-        description="Height of bounding box in pixels",
+        description='Height of bounding box in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the bounding box."""
         super().normalize(archive, logger)
 
@@ -119,11 +119,11 @@ class RegionOfInterest(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "center_x_px",
-                    "center_y_px",
-                    "radius_px",
-                    "square_crop_size_px",
-                    "bounding_box",
+                    'center_x_px',
+                    'center_y_px',
+                    'radius_px',
+                    'square_crop_size_px',
+                    'bounding_box',
                 ],
             ),
         ),
@@ -131,42 +131,42 @@ class RegionOfInterest(ArchiveSection):
 
     center_x_px = Quantity(
         type=float,
-        description="X coordinate of circle center in pixels",
+        description='X coordinate of circle center in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     center_y_px = Quantity(
         type=float,
-        description="Y coordinate of circle center in pixels",
+        description='Y coordinate of circle center in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     radius_px = Quantity(
         type=float,
-        description="Radius of the circular ROI in pixels",
+        description='Radius of the circular ROI in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     square_crop_size_px = Quantity(
         type=int,
-        description="Size of the square crop around the circle in pixels",
+        description='Size of the square crop around the circle in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     bounding_box = SubSection(
         section_def=BoundingBox,
-        description="Bounding box coordinates for the ROI",
+        description='Bounding box coordinates for the ROI',
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the region of interest."""
         super().normalize(archive, logger)
 
@@ -181,13 +181,13 @@ class ImageDimensions(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "height",
-                    "width",
-                    "channels",
-                    "bit_depth",
-                    "is_color",
-                    "pixel_value_min",
-                    "pixel_value_max",
+                    'height',
+                    'width',
+                    'channels',
+                    'bit_depth',
+                    'is_color',
+                    'pixel_value_min',
+                    'pixel_value_max',
                 ],
             ),
         ),
@@ -195,61 +195,61 @@ class ImageDimensions(ArchiveSection):
 
     height = Quantity(
         type=int,
-        description="Image height (number of rows) in pixels",
+        description='Image height (number of rows) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     width = Quantity(
         type=int,
-        description="Image width (number of columns) in pixels",
+        description='Image width (number of columns) in pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     channels = Quantity(
         type=int,
-        description="Number of color channels (e.g., 3 for RGB)",
+        description='Number of color channels (e.g., 3 for RGB)',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     bit_depth = Quantity(
         type=int,
-        description="Bit depth of the image pixels",
+        description='Bit depth of the image pixels',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     is_color = Quantity(
         type=bool,
-        description="Whether the image is color (True) or grayscale (False)",
+        description='Whether the image is color (True) or grayscale (False)',
         a_eln={
-            "component": "BoolEditQuantity",
+            'component': 'BoolEditQuantity',
         },
     )
 
     pixel_value_min = Quantity(
         type=int,
-        description="Minimum pixel value in the image",
+        description='Minimum pixel value in the image',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     pixel_value_max = Quantity(
         type=int,
-        description="Maximum pixel value in the image",
+        description='Maximum pixel value in the image',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the image dimensions."""
         super().normalize(archive, logger)
 
@@ -264,14 +264,14 @@ class ImageMetadata(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "timestamp",
-                    "shape",
-                    "exposure_ms",
-                    "gain",
-                    "bit_depth",
-                    "is_color",
-                    "min",
-                    "max",
+                    'timestamp',
+                    'shape',
+                    'exposure_ms',
+                    'gain',
+                    'bit_depth',
+                    'is_color',
+                    'min',
+                    'max',
                 ],
             ),
         ),
@@ -279,72 +279,72 @@ class ImageMetadata(ArchiveSection):
 
     timestamp = Quantity(
         type=str,
-        description="Timestamp when the image was acquired (ISO format or custom format)",
+        description='Timestamp when the image was acquired (ISO format or custom format)',
         a_eln={
-            "component": "StringEditQuantity",
+            'component': 'StringEditQuantity',
         },
     )
 
     shape = Quantity(
         type=int,
-        shape=["*"],
-        description="Shape of the image array (e.g., [height, width, channels])",
+        shape=['*'],
+        description='Shape of the image array (e.g., [height, width, channels])',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     exposure_ms = Quantity(
         type=float,
-        description="Exposure time in milliseconds",
+        description='Exposure time in milliseconds',
         a_eln={
-            "component": "NumberEditQuantity",
-            "defaultDisplayUnit": "millisecond",
+            'component': 'NumberEditQuantity',
+            'defaultDisplayUnit': 'millisecond',
         },
-        unit="millisecond",
+        unit='millisecond',
     )
 
     gain = Quantity(
         type=float,
-        description="Camera gain setting (typically 0-100)",
+        description='Camera gain setting (typically 0-100)',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     bit_depth = Quantity(
         type=int,
-        description="Bit depth of the image (e.g., 8-bit, 12-bit)",
+        description='Bit depth of the image (e.g., 8-bit, 12-bit)',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     is_color = Quantity(
         type=bool,
-        description="Whether the image is color (True) or grayscale (False)",
+        description='Whether the image is color (True) or grayscale (False)',
         a_eln={
-            "component": "BoolEditQuantity",
+            'component': 'BoolEditQuantity',
         },
     )
 
     min = Quantity(
         type=float,
-        description="Minimum pixel value in the image",
+        description='Minimum pixel value in the image',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
     max = Quantity(
         type=float,
-        description="Maximum pixel value in the image",
+        description='Maximum pixel value in the image',
         a_eln={
-            "component": "NumberEditQuantity",
+            'component': 'NumberEditQuantity',
         },
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the image metadata."""
         super().normalize(archive, logger)
 
@@ -358,13 +358,13 @@ class ManifestData(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "Date",
-                    "Cu_source_power",
-                    "Sn_source_power",
-                    "Zn_source_power",
-                    "Pressure",
-                    "Source_temperature",
-                    "Process_temperature",
+                    'Date',
+                    'Cu_source_power',
+                    'Sn_source_power',
+                    'Zn_source_power',
+                    'Pressure',
+                    'Source_temperature',
+                    'Process_temperature',
                 ],
             ),
         ),
@@ -372,81 +372,81 @@ class ManifestData(ArchiveSection):
 
     Date = Quantity(
         type=str,
-        description="Date of the measurement",
-        a_eln={"component": "StringEditQuantity"},
+        description='Date of the measurement',
+        a_eln={'component': 'StringEditQuantity'},
     )
 
     Cu_source_power = Quantity(
         type=float,
-        unit="watt",
-        description="Cu source power",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='watt',
+        description='Cu source power',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Sn_source_power = Quantity(
         type=float,
-        unit="watt",
-        description="Sn source power",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='watt',
+        description='Sn source power',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Zn_source_power = Quantity(
         type=float,
-        unit="watt",
-        description="Zn source power",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='watt',
+        description='Zn source power',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Pressure = Quantity(
         type=float,
-        unit="pascal",
-        description="Chamber pressure",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='pascal',
+        description='Chamber pressure',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Source_temperature = Quantity(
         type=float,
-        unit="kelvin",
-        description="Source temperature",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='kelvin',
+        description='Source temperature',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Process_temperature = Quantity(
         type=float,
-        unit="kelvin",
-        description="Process temperature",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='kelvin',
+        description='Process temperature',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Chamber_pressure = Quantity(
         type=float,
-        unit="pascal",
-        description="Chamber pressure during process",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='pascal',
+        description='Chamber pressure during process',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Process_time = Quantity(
         type=float,
-        unit="second",
-        description="Process time",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='second',
+        description='Process time',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Cooling_time = Quantity(
         type=float,
-        unit="second",
-        description="Cooling time",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='second',
+        description='Cooling time',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     Cooling_rate = Quantity(
         type=float,
-        unit="kelvin / second",
-        description="Cooling rate",
-        a_eln={"component": "NumberEditQuantity"},
+        unit='kelvin / second',
+        description='Cooling rate',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize manifest data."""
         super().normalize(archive, logger)
 
@@ -462,7 +462,7 @@ class ImageVisualization(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "image_file",
+                    'image_file',
                 ],
             ),
         ),
@@ -470,13 +470,13 @@ class ImageVisualization(ArchiveSection):
 
     image_file = Quantity(
         type=str,
-        description="Path to the PNG preview image file. NOMAD will render this as an image in the GUI.",
+        description='Path to the PNG preview image file. NOMAD will render this as an image in the GUI.',
         a_eln={
-            "component": "FileEditQuantity",
+            'component': 'FileEditQuantity',
         },
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize image visualization."""
         super().normalize(archive, logger)
 
@@ -491,11 +491,11 @@ class ImageData(PlotSection, ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "dimensions",
-                    "roi",
-                    "visualization",
-                    "image_array",
-                    "image_preview",
+                    'dimensions',
+                    'roi',
+                    'visualization',
+                    'image_array',
+                    'image_preview',
                 ],
             ),
         ),
@@ -503,36 +503,36 @@ class ImageData(PlotSection, ArchiveSection):
 
     dimensions = SubSection(
         section_def=ImageDimensions,
-        description="Image dimensions and shape.",
+        description='Image dimensions and shape.',
     )
 
     roi = SubSection(
         section_def=RegionOfInterest,
-        description="Region of interest information.",
+        description='Region of interest information.',
     )
 
     visualization = SubSection(
         section_def=ImageVisualization,
-        description="Image visualization with PNG preview file.",
+        description='Image visualization with PNG preview file.',
     )
 
     image_array = Quantity(
         type=str,
-        description="Path to the raw image data file (NPY format).",
+        description='Path to the raw image data file (NPY format).',
         a_eln={
-            "component": "FileEditQuantity",
+            'component': 'FileEditQuantity',
         },
     )
 
     image_preview = Quantity(
         type=str,
-        description="Path to a PNG preview image generated from the raw image data for visualization.",
+        description='Path to a PNG preview image generated from the raw image data for visualization.',
         a_eln={
-            "component": "FileEditQuantity",
+            'component': 'FileEditQuantity',
         },
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize image data."""
 
         super().normalize(archive, logger)
@@ -547,7 +547,7 @@ class ImageData(PlotSection, ArchiveSection):
                 )
 
             except Exception as exc:
-                logger.warning(f"Could not generate image plot: {exc}")
+                logger.warning(f'Could not generate image plot: {exc}')
 
     def create_image_plot(self, npy_path, logger=None) -> None:
         """Create an in-NOMAD Plotly image visualization from the NPY data."""
@@ -568,11 +568,11 @@ class ImageExperimentRun(ArchiveSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "timestamp",
-                    "name",
+                    'timestamp',
+                    'name',
                     #'manifest_data',
-                    "metadata",
-                    "image",
+                    'metadata',
+                    'image',
                 ]
             )
         ),
@@ -580,32 +580,32 @@ class ImageExperimentRun(ArchiveSection):
 
     timestamp = Quantity(
         type=str,
-        description="Timestamp/folder name of the measurement (e.g., 20260323_133255).",
-        a_eln={"component": "StringEditQuantity"},
+        description='Timestamp/folder name of the measurement (e.g., 20260323_133255).',
+        a_eln={'component': 'StringEditQuantity'},
     )
 
     name = Quantity(
         type=str,
-        description="A descriptive name for the experiment run.",
-        a_eln={"component": "StringEditQuantity"},
+        description='A descriptive name for the experiment run.',
+        a_eln={'component': 'StringEditQuantity'},
     )
 
     manifest_data = SubSection(
         section_def=ManifestData,
-        description="Experiment parameters from manifest file.",
+        description='Experiment parameters from manifest file.',
     )
 
     metadata = SubSection(
         section_def=ImageMetadata,
-        description="Image acquisition metadata.",
+        description='Image acquisition metadata.',
     )
 
     image = SubSection(
         section_def=ImageData,
-        description="Image data and dimensions.",
+        description='Image data and dimensions.',
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the experiment run."""
         super().normalize(archive, logger)
 
@@ -620,9 +620,9 @@ class ImageDataset(PlotSection, EntryData):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
-                    "name",
-                    "synthesis_conditions",
-                    "measurements",
+                    'name',
+                    'synthesis_conditions',
+                    'measurements',
                 ]
             )
         ),
@@ -630,30 +630,30 @@ class ImageDataset(PlotSection, EntryData):
 
     name = Quantity(
         type=str,
-        description="A descriptive name for the dataset.",
-        a_eln={"component": "StringEditQuantity"},
+        description='A descriptive name for the dataset.',
+        a_eln={'component': 'StringEditQuantity'},
     )
 
     measurements = SubSection(
         section_def=ImageExperimentRun,
-        description="Collection of image experiment measurements.",
+        description='Collection of image experiment measurements.',
         repeats=True,
     )
 
     synthesis_conditions = SubSection(
         section_def=ManifestData,
-        description="Sample-level synthesis conditions parsed from the root JSON file.",
+        description='Sample-level synthesis conditions parsed from the root JSON file.',
     )
 
-    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
+    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize the dataset."""
         super().normalize(archive, logger)
 
         try:
-            if not getattr(self, "figures", None):
+            if not getattr(self, 'figures', None):
                 self.figures = plu.collect_image_dataset_figures(self.measurements)
         except Exception as exc:
-            logger.warning("Could not set dataset figures: %s", exc)
+            logger.warning('Could not set dataset figures: %s', exc)
 
 
 m_package.__init_metainfo__()

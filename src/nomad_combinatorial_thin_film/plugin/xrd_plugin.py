@@ -26,6 +26,10 @@ from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, ELNComponentEnum
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
+from nomad_dtu_nanolab_plugin.categories import DTUNanolabCategory
+from nomad_dtu_nanolab_plugin.schema_packages.basesections import (
+    DtuNanolabMeasurement,
+)
 from nomad_measurements.mapping.schema import (
     MappingResult,
     RectangularSampleAlignment,
@@ -39,22 +43,17 @@ from nomad_measurements.xrd.schema import (
 )
 from structlog.stdlib import BoundLogger
 
-from nomad_dtu_nanolab_plugin.categories import DTUNanolabCategory
-from nomad_dtu_nanolab_plugin.schema_packages.basesections import (
-    DtuNanolabMeasurement,
-)
-
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive
     from structlog.stdlib import BoundLogger
 
-m_package = Package(name='DTU XRD measurement schema')
+m_package = Package(name="DTU XRD measurement schema")
 
 
 class XRDMappingResult(MappingResult, XRDResult1D):  # , PlotSection
     m_def = Section()
 
-    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
+    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
         """
         The normalizer for the `XRDMappingResult` class.
 
@@ -69,25 +68,25 @@ class XRDMappingResult(MappingResult, XRDResult1D):  # , PlotSection
 class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Schema):
     m_def = Section(
         categories=[DTUNanolabCategory],
-        links=['http://purl.obolibrary.org/obo/CHMO_0001294'],
-        label='XRD Measurement',
+        links=["http://purl.obolibrary.org/obo/CHMO_0001294"],
+        label="XRD Measurement",
     )
     data_files = Quantity(
         type=str,
-        shape=['*'],
-        description='Data files containing the diffractograms',
+        shape=["*"],
+        description="Data files containing the diffractograms",
         a_eln=ELNAnnotation(
             component=ELNComponentEnum.FileEditQuantity,
         ),
     )
     results = SubSection(
         section_def=XRDMappingResult,
-        description='The XRD results.',
+        description="The XRD results.",
         repeats=True,
     )
     sample_alignment = SubSection(
         section_def=RectangularSampleAlignment,
-        description='The alignment of the sample.',
+        description="The alignment of the sample.",
     )
 
     def plot(self) -> None:
@@ -96,9 +95,9 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
         for result in self.results:
             fig.add_trace(
                 go.Scatter(
-                    x=result.two_theta.to('deg').magnitude,
+                    x=result.two_theta.to("deg").magnitude,
                     y=result.intensity.magnitude,
-                    mode='lines',
+                    mode="lines",
                     name=result.name,
                     hoverlabel=dict(namelength=-1),
                 )
@@ -106,28 +105,28 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
 
         # Update layout
         fig.update_layout(
-            title='XRD Patterns',
-            xaxis_title='2<i>theta</i> (deg)',
-            yaxis_title='Intensity',
-            template='plotly_white',
-            hovermode='closest',
-            dragmode='zoom',
+            title="XRD Patterns",
+            xaxis_title="2<i>theta</i> (deg)",
+            yaxis_title="Intensity",
+            template="plotly_white",
+            hovermode="closest",
+            dragmode="zoom",
             xaxis=dict(
                 fixedrange=False,
             ),
             yaxis=dict(
                 fixedrange=False,
-                type='log',
+                type="log",
             ),
         )
 
         plot_json = fig.to_plotly_json()
-        plot_json['config'] = dict(
+        plot_json["config"] = dict(
             scrollZoom=False,
         )
         self.figures.append(
             PlotlyFigure(
-                label='Patterns',
+                label="Patterns",
                 figure=plot_json,
             )
         )
@@ -147,7 +146,7 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
             log_intensities.append(log_intensity)
 
             # Filter for 2theta range 10-60 degrees for offset calculation
-            two_theta_deg = result.two_theta.to('deg').magnitude
+            two_theta_deg = result.two_theta.to("deg").magnitude
             mask = (two_theta_deg >= TT_RANGE[0]) & (two_theta_deg <= TT_RANGE[1])
             log_intensity_filtered = log_intensity[mask]
 
@@ -160,9 +159,9 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
         for i, result in enumerate(self.results):
             fig2.add_trace(
                 go.Scatter(
-                    x=result.two_theta.to('deg').magnitude,
+                    x=result.two_theta.to("deg").magnitude,
                     y=log_intensities[i] + offsets[i],
-                    mode='lines',
+                    mode="lines",
                     name=result.name,
                     hoverlabel=dict(namelength=-1),
                 )
@@ -170,28 +169,28 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
 
         # Update layout
         fig2.update_layout(
-            title='XRD Patterns stacked',
-            xaxis_title='2<i>theta</i> (deg)',
-            yaxis_title='Log(Intensity)',
-            template='plotly_white',
-            hovermode='closest',
-            dragmode='zoom',
+            title="XRD Patterns stacked",
+            xaxis_title="2<i>theta</i> (deg)",
+            yaxis_title="Log(Intensity)",
+            template="plotly_white",
+            hovermode="closest",
+            dragmode="zoom",
             xaxis=dict(
                 fixedrange=False,
             ),
             yaxis=dict(
                 fixedrange=False,
-                type='linear',
+                type="linear",
             ),
         )
 
         plot_json2 = fig2.to_plotly_json()
-        plot_json2['config'] = dict(
+        plot_json2["config"] = dict(
             scrollZoom=False,
         )
         self.figures.append(
             PlotlyFigure(
-                label='Patterns',
+                label="Patterns",
                 figure=plot_json2,
             )
         )
@@ -199,8 +198,8 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
     def write_xrd_data(
         self,
         xrd_dicts: list[dict[str, Any]],
-        archive: 'EntryArchive',
-        logger: 'BoundLogger',
+        archive: "EntryArchive",
+        logger: "BoundLogger",
     ) -> None:
         """
         Write method for populating the `ELNXRayDiffraction` section from a dict.
@@ -213,17 +212,17 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
         results = []
         source_dict = {}
         for xrd_dict in xrd_dicts:
-            metadata_dict: dict = xrd_dict.get('metadata', {})
-            new_source_dict: dict = metadata_dict.get('source', {})
+            metadata_dict: dict = xrd_dict.get("metadata", {})
+            new_source_dict: dict = metadata_dict.get("source", {})
             if source_dict and source_dict != new_source_dict:
-                logger.warning('Different sources in the same measurement')
+                logger.warning("Different sources in the same measurement")
             source_dict = new_source_dict
 
-            scan_type = metadata_dict.get('scan_type', None)
-            if scan_type != 'line':
+            scan_type = metadata_dict.get("scan_type", None)
+            if scan_type != "line":
                 logger.error(f'Unsupported scan type: "{scan_type}"')
-            x_coordinates = xrd_dict.get('X')
-            y_coordinates = xrd_dict.get('Y')
+            x_coordinates = xrd_dict.get("X")
+            y_coordinates = xrd_dict.get("Y")
             x_absolute = (
                 x_coordinates[0]
                 if x_coordinates is not None and len(x_coordinates) > 0
@@ -235,13 +234,13 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
                 else 0
             )
             result = XRDMappingResult(
-                intensity=xrd_dict.get('intensity', None),
-                two_theta=xrd_dict.get('2Theta', None),
-                omega=xrd_dict.get('Omega', None),
-                chi=xrd_dict.get('Chi', None),
-                phi=xrd_dict.get('Phi', None),
-                scan_axis=metadata_dict.get('scan_axis', None),
-                integration_time=xrd_dict.get('countTime', None),
+                intensity=xrd_dict.get("intensity", None),
+                two_theta=xrd_dict.get("2Theta", None),
+                omega=xrd_dict.get("Omega", None),
+                chi=xrd_dict.get("Chi", None),
+                phi=xrd_dict.get("Phi", None),
+                scan_axis=metadata_dict.get("scan_axis", None),
+                integration_time=xrd_dict.get("countTime", None),
                 x_absolute=x_absolute,
                 y_absolute=y_absolute,
             )
@@ -291,13 +290,13 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
             results.append(result)
 
         source = XRayTubeSource(
-            xray_tube_material=source_dict.get('anode_material', None),
-            kalpha_one=source_dict.get('kAlpha1', None),
-            kalpha_two=source_dict.get('kAlpha2', None),
-            ratio_kalphatwo_kalphaone=source_dict.get('ratioKAlpha2KAlpha1', None),
-            kbeta=source_dict.get('kBeta', None),
-            xray_tube_voltage=source_dict.get('voltage', None),
-            xray_tube_current=source_dict.get('current', None),
+            xray_tube_material=source_dict.get("anode_material", None),
+            kalpha_one=source_dict.get("kAlpha1", None),
+            kalpha_two=source_dict.get("kAlpha2", None),
+            ratio_kalphatwo_kalphaone=source_dict.get("ratioKAlpha2KAlpha1", None),
+            kbeta=source_dict.get("kBeta", None),
+            xray_tube_voltage=source_dict.get("voltage", None),
+            xray_tube_current=source_dict.get("current", None),
         )
         source.normalize(archive, logger)
 
@@ -313,7 +312,7 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
         )
         merge_sections(self, xrd, logger)
 
-    def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
+    def normalize(self, archive: "EntryArchive", logger: "BoundLogger") -> None:
         """
         The normalize function of the `DTUXRDMeasurement` section.
 
@@ -324,10 +323,10 @@ class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Sch
         """
 
         if self.location is None:
-            self.location = 'DTU Nanolab XRD measurement'
+            self.location = "DTU Nanolab XRD measurement"
 
         if self.data_files:
-            self.add_sample_reference(self.data_files[0], 'XRD', archive, logger)
+            self.add_sample_reference(self.data_files[0], "XRD", archive, logger)
             file_data = []
             for file_path in self.data_files:
                 with archive.m_context.raw_file(file_path) as file:

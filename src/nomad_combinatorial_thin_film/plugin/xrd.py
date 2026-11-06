@@ -1,11 +1,8 @@
-
 """NOMAD schema for spatially resolved XRD measurements."""
 
 import numpy as np
 import plotly.graph_objects as go
-
-from plotly.subplots import make_subplots
-
+from plotly.colors import qualitative, hex_to_rgb
 from nomad.datamodel.data import ArchiveSection, EntryData
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
@@ -13,7 +10,7 @@ from nomad.datamodel.metainfo.annotations import (
 )
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
-
+from plotly.subplots import make_subplots
 
 m_package = Package(
     name="Uppsala XRD Analysis",
@@ -27,6 +24,7 @@ m_package = Package(
 # ============================================================
 # 1. Individual detected XRD peak
 # ============================================================
+
 
 class XRDPeak(ArchiveSection):
     """An experimentally detected XRD reflection."""
@@ -86,6 +84,7 @@ class XRDPeak(ArchiveSection):
 # ============================================================
 # 2. Individual spatial XRD pattern
 # ============================================================
+
 
 class XRDPattern(ArchiveSection):
     """One experimental XRD pattern at a spatial position."""
@@ -165,6 +164,7 @@ class XRDPattern(ArchiveSection):
 # 3. Complete XRD experiment
 # ============================================================
 
+
 class XRDRun(EntryData, PlotSection):
     """Spatially resolved XRD experiment."""
 
@@ -187,6 +187,11 @@ class XRDRun(EntryData, PlotSection):
                     "minimum_distance_deg",
                     "minimum_width_deg",
                     "patterns",
+                    "film_diameter_mm",
+                    "notch_width_mm",
+                    "notch_depth_mm",
+                    "measurement_width_mm",
+                    "measurement_height_mm",
                 ]
             )
         ),
@@ -265,276 +270,378 @@ class XRDRun(EntryData, PlotSection):
         repeats=True,
     )
 
+    # Optional physical dimensions for the sample-position schematic.
+    # If left empty, the diagram is generated with estimated dimensions
+    # and explicitly labelled "not to scale".
+    film_diameter_mm = Quantity(
+        type=np.float64,
+        unit="mm",
+        description="Physical film diameter. Leave empty for an automatically sized schematic.",
+        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+    )
+
+    notch_width_mm = Quantity(
+        type=np.float64,
+        unit="mm",
+        description="Width of the north notch. Leave empty for a schematic default.",
+        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+    )
+
+    notch_depth_mm = Quantity(
+        type=np.float64,
+        unit="mm",
+        description="Depth of the north notch. Leave empty for a schematic default.",
+        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+    )
+
+    measurement_width_mm = Quantity(
+        type=np.float64,
+        unit="mm",
+        description="Width of each XRD measurement footprint. Leave empty for a schematic default.",
+        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+    )
+
+    measurement_height_mm = Quantity(
+        type=np.float64,
+        unit="mm",
+        description="Height of each XRD measurement footprint. Leave empty for a schematic default.",
+        a_eln=ELNAnnotation(component="NumberEditQuantity"),
+    )
+
     # ========================================================
     # Plotting
     # ========================================================
 
     def plot(self):
-        """Generate NOMAD-compatible Plotly visualizations."""
+        """Create one Plotly canvas with raw, normalized, log grids and a film map."""
 
         def as_float_array(value):
             if hasattr(value, "magnitude"):
                 value = value.magnitude
-
             return np.asarray(value, dtype=float)
 
-        def as_float(value):
+        def optional_float(value):
+            if value is None:
+                return None
             if hasattr(value, "magnitude"):
                 value = value.magnitude
-
-            return float(value)
+            try:
+                result = float(value)
+                return result if np.isfinite(result) else None
+            except (TypeError, ValueError):
+                return None
 
         patterns = list(self.patterns)
-
         if not patterns:
+            self.figures = []
             return
 
-        figures = []
-
-        # ----------------------------------------------------
-        # 1. Spatial pattern grid
-        # ----------------------------------------------------
-
-        ncols = min(5, len(patterns))
-        nrows = int(np.ceil(len(patterns) / ncols))
-
-        titles = [
-            pattern.position_label
-            for pattern in patterns
-        ]
-
-        fig = make_subplots(
-            rows=nrows,
-            cols=ncols,
-            subplot_titles=titles,
-            shared_xaxes=True,
+        patterns.sort(
+            key=lambda p: (
+                optional_float(p.phi_deg) or 0.0,
+                optional_float(p.y_mm) or 0.0,
+                optional_float(p.x_mm) or 0.0,
+            )
         )
 
-        for index, pattern in enumerate(patterns):
+        n_patterns = len(patterns)
+        ncols = min(5, n_patterns)
+        nrows = int(np.ceil(n_patterns / ncols))
+        total_rows = 3 * nrows + 1
 
-            row = index // ncols + 1
-            col = index % ncols + 1
+        specs = [[{} for _ in range(ncols)] for _ in range(3 * nrows)]
+        specs.append([{"colspan": ncols}] + [None] * (ncols - 1))
 
-            x = as_float_array(pattern.two_theta_deg)
-            y = as_float_array(pattern.intensity)
+        titles = []
+        for mode in ("RAW INTENSITY", "NORMALIZED INTENSITY", "LOG INTENSITY"):
+            for row_index in range(nrows):
+                for col_index in range(ncols):
+                    pattern_index = row_index * ncols + col_index
+                    titles.append(
+                        f"{mode}<br>{patterns[pattern_index].position_label}"
+                        if pattern_index < n_patterns
+                        else ""
+                    )
+        titles.append("CIRCULAR FILM AND MEASUREMENT POSITIONS")
 
-            fig.add_trace(
-                go.Scatter(
-                    x=x,
-                    y=y,
-                    mode="lines",
-                    name=pattern.position_label,
-                    line=dict(width=1.0),
-                    showlegend=False,
-                ),
-                row=row,
-                col=col,
-            )
+        fig = make_subplots(
+            rows=total_rows,
+            cols=ncols,
+            specs=specs,
+            subplot_titles=titles,
+            row_heights=[0.14] * (3 * nrows) + [0.20],
+            vertical_spacing=0.035,
+            horizontal_spacing=0.035,
+        )
 
-            if pattern.peaks:
+        palette = qualitative.Plotly
+        colors = {id(p): palette[i % len(palette)] for i, p in enumerate(patterns)}
 
-                peak_x = [
-                    as_float(p.two_theta_deg)
-                    for p in pattern.peaks
-                ]
+        all_x = [as_float_array(p.two_theta_deg) for p in patterns]
+        all_x = np.concatenate(all_x)
+        all_x = all_x[np.isfinite(all_x)]
+        x_min = float(np.min(all_x)) if all_x.size else 0.0
+        x_max = float(np.max(all_x)) if all_x.size else 1.0
+        if x_min == x_max:
+            x_max = x_min + 1.0
 
-                peak_y = [
-                    as_float(p.intensity)
-                    for p in pattern.peaks
-                ]
+        # Three matching grids: same pattern order and colour in every grid.
+        for mode_index in range(3):
+            row_offset = mode_index * nrows
+
+            for index, pattern in enumerate(patterns):
+                row = row_offset + index // ncols + 1
+                col = index % ncols + 1
+                x = as_float_array(pattern.two_theta_deg)
+                y = as_float_array(pattern.intensity)
+                color = colors[id(pattern)]
+
+                if mode_index == 0:
+                    plotted_y = y
+                    y_title = "Counts"
+                elif mode_index == 1:
+                    scale = np.nanmax(np.abs(y)) if y.size else 0.0
+                    plotted_y = y / scale if np.isfinite(scale) and scale > 0 else y
+                    y_title = "I / max(|I|)"
+                else:
+                    plotted_y = np.where(y > 0, y, np.nan)
+                    y_title = "Counts (log)"
 
                 fig.add_trace(
                     go.Scatter(
-                        x=peak_x,
-                        y=peak_y,
-                        mode="markers",
-                        marker=dict(
-                            color="red",
-                            size=6,
-                            symbol="x",
-                        ),
-                        name="Detected peaks",
+                        x=x,
+                        y=plotted_y,
+                        mode="lines",
+                        name=pattern.position_label,
+                        line=dict(color=color, width=1.25),
                         showlegend=False,
+                        connectgaps=False,
+                        hovertemplate=(
+                            f"{pattern.position_label}<br>"
+                            "2θ: %{x:.3f}°<br>I: %{y:.4g}<extra></extra>"
+                        ),
                     ),
                     row=row,
                     col=col,
                 )
 
-        fig.update_layout(
-            title="Spatially Resolved XRD Patterns",
-            template="plotly_white",
-            height=max(450, 300 * nrows),
-            width=1400,
-            showlegend=False,
+                # Detected peak markers are overlaid on the raw-intensity grid.
+                if mode_index == 0 and pattern.peaks:
+                    px = [optional_float(p.two_theta_deg) for p in pattern.peaks]
+                    py = [optional_float(p.intensity) for p in pattern.peaks]
+                    valid = [(a, b) for a, b in zip(px, py) if a is not None and b is not None]
+                    if valid:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[v[0] for v in valid],
+                                y=[v[1] for v in valid],
+                                mode="markers",
+                                marker=dict(color=color, size=5, symbol="x"),
+                                showlegend=False,
+                                hovertemplate="Detected peak<br>2θ: %{x:.3f}°<extra></extra>",
+                            ),
+                            row=row,
+                            col=col,
+                        )
+
+                fig.update_xaxes(
+                    range=[x_min, x_max],
+                    showgrid=True,
+                    gridcolor="rgba(180,180,180,0.25)",
+                    row=row,
+                    col=col,
+                )
+                fig.update_yaxes(
+                    title_text=y_title,
+                    showgrid=True,
+                    gridcolor="rgba(180,180,180,0.25)",
+                    row=row,
+                    col=col,
+                )
+                if mode_index == 2:
+                    fig.update_yaxes(type="log", row=row, col=col)
+                if index // ncols == nrows - 1:
+                    fig.update_xaxes(title_text="2θ (°)", row=row, col=col)
+
+        # Spatial schematic. Filename coordinates are the rectangle centres.
+        points = []
+        for p in patterns:
+            x = optional_float(p.x_mm)
+            y = optional_float(p.y_mm)
+            phi = optional_float(p.phi_deg) or 0.0
+            if x is not None and y is not None:
+                points.append((p, x, y, phi))
+
+        max_coord = max(
+            [max(abs(x), abs(y)) for _, x, y, _ in points] or [10.0]
+        )
+        diameter = optional_float(self.film_diameter_mm)
+        notch_width = optional_float(self.notch_width_mm)
+        notch_depth = optional_float(self.notch_depth_mm)
+        rect_width = optional_float(self.measurement_width_mm)
+        rect_height = optional_float(self.measurement_height_mm)
+
+        dimensions_supplied = all(
+            v is not None and v > 0
+            for v in (diameter, notch_width, notch_depth, rect_width, rect_height)
         )
 
+        radius = diameter / 2 if diameter and diameter > 0 else max(max_coord + 3.0, 5.0)
+        notch_width = notch_width if notch_width and notch_width > 0 else max(0.12 * radius, 0.8)
+        notch_depth = notch_depth if notch_depth and notch_depth > 0 else max(0.07 * radius, 0.5)
+        rect_width = rect_width if rect_width and rect_width > 0 else max(0.075 * radius, 0.8)
+        rect_height = rect_height if rect_height and rect_height > 0 else max(0.035 * radius, 0.45)
+
+        half_notch = min(notch_width / 2, radius * 0.45)
+        notch_y = np.sqrt(max(radius**2 - half_notch**2, 0.0))
+        theta0 = np.pi / 2 + np.arcsin(half_notch / radius)
+        theta1 = 2 * np.pi + np.pi / 2 - np.arcsin(half_notch / radius)
+        theta = np.linspace(theta0, theta1, 240)
+        film_x = list(radius * np.cos(theta)) + [
+            half_notch, half_notch, -half_notch, -half_notch
+        ]
+        film_y = list(radius * np.sin(theta)) + [
+            notch_y, radius - notch_depth, radius - notch_depth, notch_y
+        ]
+
+        map_row = total_rows
+        fig.add_trace(
+            go.Scatter(
+                x=film_x,
+                y=film_y,
+                mode="lines",
+                fill="toself",
+                fillcolor="rgba(180,190,205,0.22)",
+                line=dict(color="#263238", width=2.5),
+                name="Film boundary",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+            row=map_row,
+            col=1,
+        )
+
+        for p, cx, cy, phi in points:
+            color = colors[id(p)]
+            angle = np.deg2rad(phi)
+            corners = np.array(
+                [
+                    [-rect_width / 2, -rect_height / 2],
+                    [rect_width / 2, -rect_height / 2],
+                    [rect_width / 2, rect_height / 2],
+                    [-rect_width / 2, rect_height / 2],
+                ]
+            )
+            rotation = np.array(
+                [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+            )
+            corners = corners @ rotation.T
+            rx = list(corners[:, 0] + cx)
+            ry = list(corners[:, 1] + cy)
+            rx.append(rx[0])
+            ry.append(ry[0])
+
+            # Plotly qualitative palettes are normally hexadecimal colours.
+            red, green, blue = hex_to_rgb(color)
+            fill = f"rgba({red},{green},{blue},0.30)"
+
+            fig.add_trace(
+                go.Scatter(
+                    x=rx,
+                    y=ry,
+                    mode="lines",
+                    fill="toself",
+                    fillcolor=fill,
+                    line=dict(color=color, width=2),
+                    name=p.position_label,
+                    showlegend=False,
+                    hovertemplate=(
+                        f"{p.position_label}<br>X={cx:g} mm<br>"
+                        f"Y={cy:g} mm<br>φ={phi:g}°<extra></extra>"
+                    ),
+                ),
+                row=map_row,
+                col=1,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[cx],
+                    y=[cy],
+                    mode="markers",
+                    marker=dict(color=color, size=6, line=dict(color="white", width=1)),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ),
+                row=map_row,
+                col=1,
+            )
+
+        map_limit = max(radius * 1.18, max_coord + rect_width + 1.0)
         fig.update_xaxes(
-            title_text="2θ (°)",
+            title_text="X (mm)",
+            range=[-map_limit, map_limit],
             showgrid=True,
+            zeroline=True,
+            row=map_row,
+            col=1,
         )
-
         fig.update_yaxes(
-            title_text="Intensity (counts)",
+            title_text="Y (mm)",
+            range=[-map_limit, map_limit],
             showgrid=True,
+            zeroline=True,
+            scaleanchor=f"x{(map_row - 1) * ncols + 1}",
+            scaleratio=1,
+            row=map_row,
+            col=1,
         )
 
-        figures.append(
+        map_axis = (map_row - 1) * ncols + 1
+        fig.add_annotation(
+            x=0.97,
+            y=0.95,
+            xref=f"x{map_axis} domain",
+            yref=f"y{map_axis} domain",
+            text="N ↑",
+            showarrow=False,
+            font=dict(size=15, color="#263238"),
+        )
+        note = (
+            "Dimensions supplied"
+            if dimensions_supplied
+            else "SCHEMATIC — NOT TO SCALE. Set film diameter, notch and footprint dimensions in the ELN fields."
+        )
+        fig.add_annotation(
+            x=0.5,
+            y=0.02,
+            xref=f"x{map_axis} domain",
+            yref=f"y{map_axis} domain",
+            text=note,
+            showarrow=False,
+            font=dict(size=11, color="#555"),
+        )
+
+        fig.update_layout(
+            title=(
+                "Spatially Resolved XRD: Raw, Normalized and Log Intensity "
+                "with Sample Measurement Map"
+            ),
+            template="plotly_white",
+            width=1800,
+            height=max(2100, 260 * total_rows),
+            margin=dict(l=65, r=35, t=110, b=55),
+            hovermode="closest",
+            showlegend=False,
+            font=dict(size=10),
+        )
+
+        # Exactly one PlotlyFigure is attached to this NOMAD archive entry.
+        self.figures = [
             PlotlyFigure(
-                label="Spatial XRD Pattern Grid",
+                label="Complete XRD Archive Plot",
                 figure=fig.to_plotly_json(),
             )
-        )
-
-        # ----------------------------------------------------
-        # 2. Combined linear plot
-        # ----------------------------------------------------
-
-        fig_linear = go.Figure()
-
-        line_styles = [
-            "solid",
-            "dash",
-            "dot",
-            "dashdot",
         ]
-
-        for index, pattern in enumerate(patterns):
-
-            x = as_float_array(pattern.two_theta_deg)
-            y = as_float_array(pattern.intensity)
-
-            fig_linear.add_trace(
-                go.Scatter(
-                    x=x,
-                    y=y,
-                    mode="lines",
-                    name=pattern.position_label,
-                    line=dict(
-                        width=1.2,
-                        dash=line_styles[index % len(line_styles)],
-                    ),
-                )
-            )
-
-        fig_linear.update_layout(
-            title="Combined XRD Patterns - Linear Scale",
-            xaxis_title="2θ (°)",
-            yaxis_title="Intensity (counts)",
-            template="plotly_white",
-            hovermode="x unified",
-            height=650,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0,
-            ),
-        )
-
-        figures.append(
-            PlotlyFigure(
-                label="Combined XRD - Linear Scale",
-                figure=fig_linear.to_plotly_json(),
-            )
-        )
-
-        # ----------------------------------------------------
-        # 3. Combined logarithmic plot
-        # ----------------------------------------------------
-
-        fig_log = go.Figure()
-
-        for index, pattern in enumerate(patterns):
-
-            x = as_float_array(pattern.two_theta_deg)
-            y = as_float_array(pattern.intensity)
-
-            # Zero and negative intensities cannot be displayed
-            # on a logarithmic axis.
-            y_log = np.where(y > 0, y, np.nan)
-
-            fig_log.add_trace(
-                go.Scatter(
-                    x=x,
-                    y=y_log,
-                    mode="lines",
-                    name=pattern.position_label,
-                    line=dict(
-                        width=1.2,
-                        dash=line_styles[index % len(line_styles)],
-                    ),
-                )
-            )
-
-        fig_log.update_layout(
-            title="Combined XRD Patterns - Logarithmic Scale",
-            xaxis_title="2θ (°)",
-            yaxis_title="Intensity (counts, log scale)",
-            yaxis_type="linear",
-            template="plotly_white",
-            hovermode="x unified",
-            height=650,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0,
-            ),
-        )
-
-        fig_log.update_yaxes(type="log")
-
-        figures.append(
-            PlotlyFigure(
-                label="Combined XRD - Logarithmic Scale",
-                figure=fig_log.to_plotly_json(),
-            )
-        )
-
-        # ----------------------------------------------------
-        # 4. Detected peak count by position
-        # ----------------------------------------------------
-
-        positions = [
-            pattern.position_label
-            for pattern in patterns
-        ]
-
-        peak_counts = [
-            len(pattern.peaks)
-            for pattern in patterns
-        ]
-
-        fig_peaks = go.Figure(
-            data=[
-                go.Bar(
-                    x=positions,
-                    y=peak_counts,
-                    name="Detected peaks",
-                )
-            ]
-        )
-
-        fig_peaks.update_layout(
-            title="Number of Detected Peaks by Position",
-            xaxis_title="Measurement position",
-            yaxis_title="Number of detected peaks",
-            template="plotly_white",
-            height=500,
-        )
-
-        figures.append(
-            PlotlyFigure(
-                label="Peak Count by Position",
-                figure=fig_peaks.to_plotly_json(),
-            )
-        )
-
-        # NOMAD expects PlotlyFigure metainfo sections,
-        # not raw Plotly Figure objects.
-        self.figures = figures
 
 
 m_package.__init_metainfo__()

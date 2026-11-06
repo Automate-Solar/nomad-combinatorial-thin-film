@@ -30,25 +30,25 @@ class XrdSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 image_schema_package_entry_point = ImageSchemaPackageEntryPoint(
-    name='ImagePlugin',
-    description='Schema package for image analysis with metadata, ROI, and dimensions.',
+    name="ImagePlugin",
+    description="Schema package for image analysis with metadata, ROI, and dimensions.",
 )
 
 
 hyperspectral_schema_package_entry_point = HyperspectralSchemaPackageEntryPoint(
-    name='HyperspectralPlugin',
-    description='Schema package for hyperspectral image datasets.',
+    name="HyperspectralPlugin",
+    description="Schema package for hyperspectral image datasets.",
 )
 
 
 sputtering_schema_package_entry_point = SputteringSchemaPackageEntryPoint(
-    name='UppsalaSputteringPlugin',
-    description='Schema package for Uppsala sputtering data.',
+    name="UppsalaSputteringPlugin",
+    description="Schema package for Uppsala sputtering data.",
 )
 
 xrd_schema_package_entry_point = XrdSchemaPackageEntryPoint(
-    name='DTUXRDMeasurement',
-    description='Schema package for DTU X-ray diffraction measurements.',
+    name="DTUXRDMeasurement",
+    description="Schema package for DTU X-ray diffraction measurements.",
 )
 
 
@@ -63,16 +63,12 @@ class ExperimentPlanSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 experiment_plan_schema_package_entry_point = ExperimentPlanSchemaPackageEntryPoint(
-    name='UppsalaSputteringExperimentPlan',
-    description='Schema package for sputtering experiment plans and predicted profiles.',
+    name="UppsalaSputteringExperimentPlan",
+    description="Schema package for sputtering experiment plans and predicted profiles.",
 )
 
-from nomad.config.models.plugins import SchemaPackageEntryPoint
 
-
-class SulfurizationSchemaPackageEntryPoint(
-    SchemaPackageEntryPoint
-):
+class SulfurizationSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
     def load(self):
         from nomad_combinatorial_thin_film.plugin.sulfurization import (
@@ -82,23 +78,19 @@ class SulfurizationSchemaPackageEntryPoint(
         return m_package
 
 
-sulfurization_schema_package_entry_point = (
-    SulfurizationSchemaPackageEntryPoint(
-        name="SulfurizationSchema",
-        description=(
-            "Schema for PicoLog sulfurization measurements "
-            "and temperature stability analysis."
-        ),
-    )
+sulfurization_schema_package_entry_point = SulfurizationSchemaPackageEntryPoint(
+    name="SulfurizationSchema",
+    description=(
+        "Schema for PicoLog sulfurization measurements "
+        "and temperature stability analysis."
+    ),
 )
-
-
-from nomad.config.models.plugins import SchemaPackageEntryPoint
 
 
 class XRDSchemaPackageEntryPoint(SchemaPackageEntryPoint):
     def load(self):
         from nomad_combinatorial_thin_film.plugin.xrd import m_package
+
         return m_package
 
 

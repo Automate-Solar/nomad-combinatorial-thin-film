@@ -18,16 +18,16 @@ class HyperspectralParserEntryPoint(ParserEntryPoint):
 
 
 image_parser_entry_point = ImageParserEntryPoint(
-    name='ImageParser',
-    description='Parser for image datasets with metadata, ROI, and dimensions.',
-    mainfile_name_re=r'.*(synthesis\.json)$',
+    name="ImageParser",
+    description="Parser for image datasets with metadata, ROI, and dimensions.",
+    mainfile_name_re=r".*(synthesis\.json)$",
 )
 
 
 hyperspectral_parser_entry_point = HyperspectralParserEntryPoint(
-    name='HyperspectralParser',
-    description='Parser for hyperspectral ENVI datasets with .hdr/.bil cube files.',
-    mainfile_name_re=r'.*(\.hdr)$',
+    name="HyperspectralParser",
+    description="Parser for hyperspectral ENVI datasets with .hdr/.bil cube files.",
+    mainfile_name_re=r".*(\.hdr)$",
 )
 
 
@@ -44,11 +44,10 @@ class ExperimentPlanParserEntryPoint(ParserEntryPoint):
 
 
 experiment_plan_parser_entry_point = ExperimentPlanParserEntryPoint(
-    name='SputteringExperimentPlanParser',
-    description='Parser for Mongo-shell experiment_plan.txt exports.',
-    mainfile_name_re=r'(^|.*[/\\])experiment_plan\.txt$',
+    name="SputteringExperimentPlanParser",
+    description="Parser for Mongo-shell experiment_plan.txt exports.",
+    mainfile_name_re=r"(^|.*[/\\])experiment_plan\.txt$",
 )
-
 
 
 class SulfurizationParserEntryPoint(ParserEntryPoint):
@@ -72,10 +71,12 @@ sulfurization_parser_entry_point = SulfurizationParserEntryPoint(
 
 
 class XRDParserEntryPoint(ParserEntryPoint):
+
     def load(self):
         from nomad_combinatorial_thin_film.parser.xrd_parser import (
             XRDParser,
         )
+
         return XRDParser(**self.dict())
 
 
@@ -83,7 +84,8 @@ xrd_parser_entry_point = XRDParserEntryPoint(
     name="XRDParser",
     description=(
         "Parser for spatially resolved XRD measurements "
-        "in ASC and XRDML formats, including ZIP archives."
+        "from ZIP archives containing ASC or XRDML files. Use .xrdzip when "
+        "uploading through a service that automatically extracts .zip files."
     ),
-    mainfile_name_re=r"(?i).*\.(?:zip|asc|xrdml)$",
+    mainfile_name_re=r"(?i)^.*\.(?:zip|xrdzip)$",
 )

@@ -20,7 +20,7 @@ bundle so that any parser registration side-effects occur on import.
 
 from importlib import import_module
 
-_DEFAULT_SUBPACKAGES = ['nomad_combinatorial_thin_film']
+_DEFAULT_SUBPACKAGES = ["nomad_combinatorial_thin_film"]
 
 
 def activate_all(subpackages: list[str] | None = None) -> None:
@@ -41,4 +41,4 @@ def activate_all(subpackages: list[str] | None = None) -> None:
             pass
 
 
-__all__ = ['activate_all']
+__all__ = ["activate_all"]

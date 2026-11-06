@@ -148,7 +148,8 @@ sulfurization_schema = "nomad_combinatorial_thin_film.plugin:sulfurization_schem
 
 sulfurization_parser = "nomad_combinatorial_thin_film.parser:sulfurization_parser_entry_point"
 xrd_schema = "nomad_combinatorial_thin_film.plugin:xrd_schema_package_entry_point"
-xrd_parser = "nomad_combinatorial_thin_film.parser:xrd_parser_entry_point"
+#xrd_parser = "nomad_combinatorial_thin_film.parser:xrd_parser_entry_point"
+xrd = "nomad_combinatorial_thin_film.parser:xrd_parser_entry_point"
 
 
 [tool.cruft]

@@ -1,9 +1,7 @@
-
 """NOMAD schema for sulfurization temperature measurements."""
 
 import numpy as np
 import plotly.graph_objects as go
-
 from nomad.datamodel.data import ArchiveSection, EntryData
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
@@ -11,7 +9,6 @@ from nomad.datamodel.metainfo.annotations import (
 )
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
-
 
 m_package = Package(
     name="Uppsala Sulfurization Experiment",
@@ -249,9 +246,7 @@ class SulfurizationRun(EntryData, PlotSection):
         description="Elapsed measurement time in seconds.",
     )
 
-    holding_period = SubSection(
-        section_def=SulfurizationHoldingPeriod
-    )
+    holding_period = SubSection(section_def=SulfurizationHoldingPeriod)
 
     channels = SubSection(
         section_def=SulfurizationChannel,
@@ -260,7 +255,6 @@ class SulfurizationRun(EntryData, PlotSection):
 
     def plot(self):
         import numpy as np
-        import plotly.graph_objects as go
 
         fig = go.Figure()
 

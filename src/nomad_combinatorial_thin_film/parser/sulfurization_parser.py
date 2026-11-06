@@ -1,14 +1,11 @@
-
 """NOMAD parser for PicoLog sulfurization PLW measurements."""
 
 import configparser
 import logging
 import struct
-
 from pathlib import Path
 
 import numpy as np
-
 from nomad.datamodel import EntryArchive
 from nomad.parsing.parser import MatchingParser
 
@@ -17,7 +14,6 @@ from nomad_combinatorial_thin_film.plugin.sulfurization import (
     SulfurizationHoldingPeriod,
     SulfurizationRun,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +43,7 @@ UNIT_TO_SECONDS = {
 # 2. Read PicoLog PLW file
 # ============================================================
 
+
 def read_plw(filename):
     """
     Read a PicoLog for Windows PLW file.
@@ -65,30 +62,26 @@ def read_plw(filename):
     raw = filename.read_bytes()
 
     if len(raw) < 586:
-        raise ValueError(
-            "PLW file is too small to contain a valid header."
-        )
+        raise ValueError("PLW file is too small to contain a valid header.")
 
     # --------------------------------------------------------
     # Header
     # --------------------------------------------------------
 
-    header_size = struct.unpack_from(
-        "<H", raw, 0
-    )[0]
+    header_size = struct.unpack_from("<H", raw, 0)[0]
 
-    signature = raw[2:42].split(
-        b"\0", 1
-    )[0].decode(
-        "ascii",
-        errors="replace",
+    signature = (
+        raw[2:42]
+        .split(b"\0", 1)[0]
+        .decode(
+            "ascii",
+            errors="replace",
+        )
     )
 
     if "PicoLog for Windows" not in signature:
 
-        raise ValueError(
-            "Not a valid PicoLog PLW file."
-        )
+        raise ValueError("Not a valid PicoLog PLW file.")
 
     version, n_channels = struct.unpack_from(
         "<II",
@@ -97,9 +90,7 @@ def read_plw(filename):
     )
 
     if n_channels < 1:
-        raise ValueError(
-            "PLW file contains no measurement channels."
-        )
+        raise ValueError("PLW file contains no measurement channels.")
 
     channel_ids = struct.unpack_from(
         f"<{n_channels}H",
@@ -136,22 +127,16 @@ def read_plw(filename):
     # --------------------------------------------------------
 
     if header_size < 586 or header_size > len(raw):
-        raise ValueError(
-            f"Invalid PLW header size: {header_size}"
-        )
+        raise ValueError(f"Invalid PLW header size: {header_size}")
 
     if settings_size <= 0 or settings_size > len(raw):
-        raise ValueError(
-            f"Invalid PLW settings size: {settings_size}"
-        )
+        raise ValueError(f"Invalid PLW settings size: {settings_size}")
 
     settings_start = len(raw) - settings_size
     data_start = header_size
 
     if settings_start < data_start:
-        raise ValueError(
-            "PLW settings overlap the measurement data."
-        )
+        raise ValueError("PLW settings overlap the measurement data.")
 
     expected_sample_size = 4 + 4 * n_channels
 
@@ -229,15 +214,11 @@ def read_plw(filename):
     # Convert time units
     # --------------------------------------------------------
 
-    seconds_per_unit = UNIT_TO_SECONDS.get(
-        time_units
-    )
+    seconds_per_unit = UNIT_TO_SECONDS.get(time_units)
 
     if seconds_per_unit is None:
 
-        raise ValueError(
-            f"Unsupported PicoLog time-unit code: {time_units}"
-        )
+        raise ValueError(f"Unsupported PicoLog time-unit code: {time_units}")
 
     # --------------------------------------------------------
     # Decode measurement samples
@@ -269,9 +250,7 @@ def read_plw(filename):
             offset + 4,
         )
 
-        time_data[index] = (
-            timestamp * interval * seconds_per_unit
-        )
+        time_data[index] = timestamp * interval * seconds_per_unit
 
         values[index, :] = sample_values
 
@@ -288,7 +267,7 @@ def read_plw(filename):
 
     extra_bytes = available_bytes - required_bytes
 
-    #if extra_bytes:
+    # if extra_bytes:
     #    logger.warning(
     #        "%d additional bytes were not included in PLW samples.",
     #        extra_bytes,
@@ -315,6 +294,7 @@ def read_plw(filename):
 # 3. Holding-period detection
 # ============================================================
 
+
 def detect_holding_period(
     time_data,
     channels,
@@ -329,10 +309,7 @@ def detect_holding_period(
     The longest qualifying stable interval is selected.
     """
 
-    channel_lookup = {
-        channel["name"]: channel
-        for channel in channels
-    }
+    channel_lookup = {channel["name"]: channel for channel in channels}
 
     if hold_channel not in channel_lookup:
 
@@ -346,13 +323,7 @@ def detect_holding_period(
         dtype=float,
     )
 
-    stable = (
-        np.isfinite(furnace)
-        & (
-            np.abs(furnace - target_temperature)
-            <= tolerance
-        )
-    )
+    stable = np.isfinite(furnace) & (np.abs(furnace - target_temperature) <= tolerance)
 
     # --------------------------------------------------------
     # Find continuous stable regions
@@ -369,17 +340,13 @@ def detect_holding_period(
 
         elif not is_stable and start is not None:
 
-            regions.append(
-                (start, index - 1)
-            )
+            regions.append((start, index - 1))
 
             start = None
 
     if start is not None:
 
-        regions.append(
-            (start, len(stable) - 1)
-        )
+        regions.append((start, len(stable) - 1))
 
     # --------------------------------------------------------
     # Keep sufficiently long regions
@@ -389,15 +356,11 @@ def detect_holding_period(
 
     for first, last in regions:
 
-        duration = (
-            time_data[last] - time_data[first]
-        )
+        duration = time_data[last] - time_data[first]
 
         if duration >= minimum_duration:
 
-            valid_regions.append(
-                (first, last, duration)
-            )
+            valid_regions.append((first, last, duration))
 
     if not valid_regions:
         return None
@@ -421,6 +384,7 @@ def detect_holding_period(
 # 4. Calculate temperature stability
 # ============================================================
 
+
 def calculate_stability(
     channels,
     first,
@@ -440,7 +404,7 @@ def calculate_stability(
         name = channel["name"]
 
         selected = np.asarray(
-            channel["values"][first:last + 1],
+            channel["values"][first : last + 1],
             dtype=float,
         )
 
@@ -451,11 +415,7 @@ def calculate_stability(
 
         mean_value = float(np.mean(selected))
 
-        std_value = (
-            float(np.std(selected, ddof=1))
-            if len(selected) > 1
-            else 0.0
-        )
+        std_value = float(np.std(selected, ddof=1)) if len(selected) > 1 else 0.0
 
         minimum = float(np.min(selected))
         maximum = float(np.max(selected))
@@ -474,6 +434,7 @@ def calculate_stability(
 # ============================================================
 # 5. Build NOMAD channel sections
 # ============================================================
+
 
 def create_channel_sections(
     channels,
@@ -496,9 +457,7 @@ def create_channel_sections(
             dtype=float,
         )
 
-        statistics = stability_results.get(
-            channel_data["name"]
-        )
+        statistics = stability_results.get(channel_data["name"])
 
         if statistics is not None:
 
@@ -516,6 +475,7 @@ def create_channel_sections(
 # ============================================================
 # 6. Populate holding-period section
 # ============================================================
+
 
 def create_holding_section(holding_period):
     """Create the NOMAD holding-period subsection."""
@@ -545,6 +505,7 @@ def create_holding_section(holding_period):
 # ============================================================
 # 7. Build the complete NOMAD entry
 # ============================================================
+
 
 def create_sulfurization_run(
     filename,
@@ -593,14 +554,10 @@ def create_sulfurization_run(
     )
 
     if len(time_data):
-        run.recorded_duration_s = float(
-            time_data[-1] - time_data[0]
-        )
+        run.recorded_duration_s = float(time_data[-1] - time_data[0])
 
     # Holding-period information.
-    run.holding_period = create_holding_section(
-        holding_period
-    )
+    run.holding_period = create_holding_section(holding_period)
 
     # All original channels and their stability statistics.
     run.channels = create_channel_sections(
@@ -617,6 +574,7 @@ def create_sulfurization_run(
 # ============================================================
 # 8. NOMAD parser
 # ============================================================
+
 
 class SulfurizationParser(MatchingParser):
     """Parser for PicoLog PLW sulfurization measurements."""
@@ -637,9 +595,7 @@ class SulfurizationParser(MatchingParser):
         )
 
         # Read original binary PLW data.
-        metadata, time_data, channels = read_plw(
-            mainfile
-        )
+        metadata, time_data, channels = read_plw(mainfile)
 
         log.info(
             "PLW file contains %d channels and %d samples.",
@@ -662,8 +618,7 @@ class SulfurizationParser(MatchingParser):
             hold = run.holding_period
 
             log.info(
-                "Stable interval detected: %.2f to %.2f min "
-                "(duration %.2f min).",
+                "Stable interval detected: %.2f to %.2f min " "(duration %.2f min).",
                 hold.start_time_s / 60.0,
                 hold.end_time_s / 60.0,
                 hold.duration_s / 60.0,

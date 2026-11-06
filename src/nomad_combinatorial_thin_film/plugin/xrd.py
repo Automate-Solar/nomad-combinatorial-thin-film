@@ -2,7 +2,6 @@
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.colors import qualitative, hex_to_rgb
 from nomad.datamodel.data import ArchiveSection, EntryData
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
@@ -10,6 +9,7 @@ from nomad.datamodel.metainfo.annotations import (
 )
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
+from plotly.colors import hex_to_rgb, qualitative
 from plotly.subplots import make_subplots
 
 m_package = Package(
@@ -19,6 +19,8 @@ m_package = Package(
         "experimental peak detection and visualization."
     ),
 )
+
+LOG_INTENSITY_MODE_INDEX = 2
 
 
 # ============================================================
@@ -312,7 +314,7 @@ class XRDRun(EntryData, PlotSection):
     # Plotting
     # ========================================================
 
-    def plot(self):
+    def plot(self):  # noqa: PLR0912, PLR0915
         """Create one Plotly canvas with raw, normalized, log grids and a film map."""
 
         def as_float_array(value):
@@ -458,7 +460,7 @@ class XRDRun(EntryData, PlotSection):
                     row=row,
                     col=col,
                 )
-                if mode_index == 2:
+                if mode_index == LOG_INTENSITY_MODE_INDEX:
                     fig.update_yaxes(type="log", row=row, col=col)
                 if index // ncols == nrows - 1:
                     fig.update_xaxes(title_text="2θ (°)", row=row, col=col)

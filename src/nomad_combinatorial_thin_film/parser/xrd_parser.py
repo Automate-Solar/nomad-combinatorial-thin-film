@@ -24,6 +24,13 @@ from nomad_combinatorial_thin_film.plugin.xrd import (
 
 logger = logging.getLogger(__name__)
 
+MIN_VALID_XRD_POINTS = 2
+MIN_PEAK_DETECTION_POINTS = 3
+ASC_REQUIRED_COLUMNS = 2
+ASC_UNCERTAINTY_COLUMN_COUNT = 3
+ASC_EXPECTED_DIMENSIONS = 2
+MIN_SMOOTHING_POINTS = 3
+
 
 # ============================================================
 # 1. Position extraction
@@ -105,7 +112,7 @@ def clean_xy(two_theta, intensity, filename, uncertainty=None):
     if uncertainty is not None:
         uncertainty = uncertainty[valid]
 
-    if len(x) < 2:
+    if len(x) < MIN_VALID_XRD_POINTS:
         raise ValueError(f"{filename}: insufficient valid XRD data points.")
 
     # Sort by 2theta.
@@ -129,7 +136,7 @@ def clean_xy(two_theta, intensity, filename, uncertainty=None):
     if uncertainty is not None:
         uncertainty = uncertainty[unique_indices]
 
-    if len(x) < 2:
+    if len(x) < MIN_VALID_XRD_POINTS:
         raise ValueError(f"{filename}: insufficient unique 2theta values.")
 
     return {
@@ -152,13 +159,18 @@ def read_asc(content, filename):
     if array.ndim == 1:
         array = np.atleast_2d(array)
 
-    if array.ndim != 2 or array.shape[1] < 2:
+    if (
+        array.ndim != ASC_EXPECTED_DIMENSIONS
+        or array.shape[1] < ASC_REQUIRED_COLUMNS
+    ):
         raise ValueError(f"Invalid ASC file: {filename}")
 
     two_theta = array[:, 0]
     intensity = array[:, 1]
 
-    uncertainty = array[:, 2] if array.shape[1] >= 3 else None
+    uncertainty = (
+        array[:, 2] if array.shape[1] >= ASC_UNCERTAINTY_COLUMN_COUNT else None
+    )
 
     return clean_xy(
         two_theta,
@@ -470,7 +482,7 @@ def smooth_xrd_pattern(
         dtype=float,
     )
 
-    if len(intensity) < 3:
+    if len(intensity) < MIN_SMOOTHING_POINTS:
         return intensity.copy()
 
     if window_length % 2 == 0:
@@ -497,7 +509,7 @@ def smooth_xrd_pattern(
     )
 
 
-def detect_peaks(
+def detect_peaks(  # noqa: PLR0912, PLR0915
     x,
     y,
     detection_config=None,
@@ -526,7 +538,7 @@ def detect_peaks(
     x = x[valid]
     y = y[valid]
 
-    if len(x) < 3:
+    if len(x) < MIN_PEAK_DETECTION_POINTS:
         return []
 
     order = np.argsort(x)
@@ -541,7 +553,7 @@ def detect_peaks(
 
     y = y[unique_indices]
 
-    if len(x) < 3:
+    if len(x) < MIN_PEAK_DETECTION_POINTS:
         return []
 
     # --------------------------------------------------------

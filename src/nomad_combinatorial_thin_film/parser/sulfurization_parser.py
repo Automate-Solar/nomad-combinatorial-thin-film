@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 TARGET_TEMPERATURE = 325.0
 TEMPERATURE_TOLERANCE = 2.0
 MIN_HOLD_DURATION_S = 60.0
+PLW_MIN_HEADER_SIZE = 586
 
 HOLD_CHANNEL = "furnace"
 
@@ -44,7 +45,7 @@ UNIT_TO_SECONDS = {
 # ============================================================
 
 
-def read_plw(filename):
+def read_plw(filename):  # noqa: PLR0912, PLR0915
     """
     Read a PicoLog for Windows PLW file.
 
@@ -61,7 +62,7 @@ def read_plw(filename):
     filename = Path(filename)
     raw = filename.read_bytes()
 
-    if len(raw) < 586:
+    if len(raw) < PLW_MIN_HEADER_SIZE:
         raise ValueError("PLW file is too small to contain a valid header.")
 
     # --------------------------------------------------------
@@ -126,7 +127,7 @@ def read_plw(filename):
     # Validate header and data boundaries
     # --------------------------------------------------------
 
-    if header_size < 586 or header_size > len(raw):
+    if header_size < PLW_MIN_HEADER_SIZE or header_size > len(raw):
         raise ValueError(f"Invalid PLW header size: {header_size}")
 
     if settings_size <= 0 or settings_size > len(raw):
@@ -265,14 +266,6 @@ def read_plw(filename):
             channel_index,
         ]
 
-    extra_bytes = available_bytes - required_bytes
-
-    # if extra_bytes:
-    #    logger.warning(
-    #        "%d additional bytes were not included in PLW samples.",
-    #        extra_bytes,
-    #    )
-
     metadata = {
         "signature": signature,
         "version": int(version),
@@ -295,7 +288,7 @@ def read_plw(filename):
 # ============================================================
 
 
-def detect_holding_period(
+def detect_holding_period(  # noqa: PLR0913, PLR0917
     time_data,
     channels,
     target_temperature=TARGET_TEMPERATURE,

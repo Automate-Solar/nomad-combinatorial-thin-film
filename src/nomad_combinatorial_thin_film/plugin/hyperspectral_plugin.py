@@ -10,10 +10,12 @@ if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
 
 import nomad_combinatorial_thin_film.plugin.utils as plu
+from nomad_combinatorial_thin_film.categories import Uppsala
 
 m_package = Package(
     name='hyperspectral_image_plugin',
     description='Schema for hyperspectral image datasets.',
+    categories=[Uppsala],
 )
 
 

@@ -12,6 +12,8 @@ from nomad.metainfo import Package, Quantity, Section, SubSection
 from plotly.colors import hex_to_rgb, qualitative
 from plotly.subplots import make_subplots
 
+from nomad_combinatorial_thin_film.categories import Uppsala
+
 m_package = Package(
     name='Uppsala XRD Analysis',
     description=(
@@ -19,9 +21,6 @@ m_package = Package(
         'experimental peak detection and visualization.'
     ),
 )
-
-LOG_INTENSITY_MODE_INDEX = 2
-
 
 # ============================================================
 # 1. Individual detected XRD peak
@@ -171,6 +170,7 @@ class XRDRun(EntryData, PlotSection):
     """Spatially resolved XRD experiment."""
 
     m_def = Section(
+        categories=[Uppsala],
         label='Spatially Resolved XRD Experiment',
         a_eln=ELNAnnotation(
             properties=SectionProperties(
@@ -314,8 +314,8 @@ class XRDRun(EntryData, PlotSection):
     # Plotting
     # ========================================================
 
-    def plot(self):  # noqa: PLR0912, PLR0915
-        """Create one Plotly canvas with raw, normalized, log grids and a film map."""
+    def plot(self):  # noqa: PLR0915
+        """Plot all spatial XRD patterns together with their sample position map."""
 
         def as_float_array(value):
             if hasattr(value, 'magnitude'):
@@ -339,144 +339,203 @@ class XRDRun(EntryData, PlotSection):
             return
 
         patterns.sort(
-            key=lambda p: (
-                optional_float(p.phi_deg) or 0.0,
-                optional_float(p.y_mm) or 0.0,
-                optional_float(p.x_mm) or 0.0,
+            key=lambda pattern: (
+                optional_float(pattern.phi_deg) or 0.0,
+                optional_float(pattern.y_mm) or 0.0,
+                optional_float(pattern.x_mm) or 0.0,
             )
         )
 
-        n_patterns = len(patterns)
-        ncols = min(5, n_patterns)
-        nrows = int(np.ceil(n_patterns / ncols))
-        total_rows = 3 * nrows + 1
-
-        specs = [[{} for _ in range(ncols)] for _ in range(3 * nrows)]
-        specs.append([{'colspan': ncols}] + [None] * (ncols - 1))
-
-        titles = []
-        for mode in ('RAW INTENSITY', 'NORMALIZED INTENSITY', 'LOG INTENSITY'):
-            for row_index in range(nrows):
-                for col_index in range(ncols):
-                    pattern_index = row_index * ncols + col_index
-                    titles.append(
-                        f'{mode}<br>{patterns[pattern_index].position_label}'
-                        if pattern_index < n_patterns
-                        else ''
-                    )
-        titles.append('CIRCULAR FILM AND MEASUREMENT POSITIONS')
-
         fig = make_subplots(
-            rows=total_rows,
-            cols=ncols,
-            specs=specs,
-            subplot_titles=titles,
-            row_heights=[0.14] * (3 * nrows) + [0.20],
-            vertical_spacing=0.035,
-            horizontal_spacing=0.035,
+            rows=3,
+            cols=1,
+            subplot_titles=(
+                'Raw Intensity (Vertically Offset)',
+                'Normalized Intensity (Vertically Offset)',
+                'Circular Film and Measurement Positions',
+            ),
+            row_heights=[0.39, 0.31, 0.30],
+            vertical_spacing=0.09,
         )
 
         palette = qualitative.Plotly
-        colors = {id(p): palette[i % len(palette)] for i, p in enumerate(patterns)}
+        colors = {
+            id(pattern): palette[index % len(palette)]
+            for index, pattern in enumerate(patterns)
+        }
 
-        all_x = [as_float_array(p.two_theta_deg) for p in patterns]
-        all_x = np.concatenate(all_x)
+        all_x = np.concatenate(
+            [as_float_array(pattern.two_theta_deg) for pattern in patterns]
+        )
         all_x = all_x[np.isfinite(all_x)]
         x_min = float(np.min(all_x)) if all_x.size else 0.0
         x_max = float(np.max(all_x)) if all_x.size else 1.0
         if x_min == x_max:
             x_max = x_min + 1.0
 
-        # Three matching grids: same pattern order and colour in every grid.
-        for mode_index in range(3):
-            row_offset = mode_index * nrows
+        raw_ranges = []
+        normalized_patterns = []
+        for pattern in patterns:
+            y = as_float_array(pattern.intensity)
+            finite_y = y[np.isfinite(y)]
+            raw_ranges.append(float(np.ptp(finite_y)) if finite_y.size else 0.0)
+            scale = float(np.max(np.abs(finite_y))) if finite_y.size else 0.0
+            normalized_patterns.append(y / scale if scale > 0 else y.copy())
 
-            for index, pattern in enumerate(patterns):
-                row = row_offset + index // ncols + 1
-                col = index % ncols + 1
-                x = as_float_array(pattern.two_theta_deg)
-                y = as_float_array(pattern.intensity)
-                color = colors[id(pattern)]
+        raw_offset = max(max(raw_ranges, default=0.0) * 1.15, 1.0)
+        normalized_ranges = [
+            float(np.ptp(values[np.isfinite(values)]))
+            for values in normalized_patterns
+            if np.isfinite(values).any()
+        ]
+        normalized_offset = max(max(normalized_ranges, default=0.0) * 1.15, 1.0)
 
-                if mode_index == 0:
-                    plotted_y = y
-                    y_title = 'Counts'
-                elif mode_index == 1:
-                    scale = np.nanmax(np.abs(y)) if y.size else 0.0
-                    plotted_y = y / scale if np.isfinite(scale) and scale > 0 else y
-                    y_title = 'I / max(|I|)'
-                else:
-                    plotted_y = np.where(y > 0, y, np.nan)
-                    y_title = 'Counts (log)'
+        for index, (pattern, normalized_y) in enumerate(
+            zip(patterns, normalized_patterns)
+        ):
+            x = as_float_array(pattern.two_theta_deg)
+            y = as_float_array(pattern.intensity)
+            color = colors[id(pattern)]
+            raw_y_offset = y + index * raw_offset
+            normalized_y_offset = normalized_y + index * normalized_offset
 
-                fig.add_trace(
-                    go.Scatter(
-                        x=x,
-                        y=plotted_y,
-                        mode='lines',
-                        name=pattern.position_label,
-                        line=dict(color=color, width=1.25),
-                        showlegend=False,
-                        connectgaps=False,
-                        hovertemplate=(
-                            f'{pattern.position_label}<br>'
-                            '2θ: %{x:.3f}°<br>I: %{y:.4g}<extra></extra>'
-                        ),
+            fig.add_trace(
+                go.Scatter(
+                    x=x,
+                    y=raw_y_offset,
+                    mode='lines',
+                    name=pattern.position_label,
+                    legendgroup=pattern.position_label,
+                    line=dict(color=color, width=1.5),
+                    connectgaps=False,
+                    hovertemplate=(
+                        f'{pattern.position_label}<br>'
+                        '2-theta: %{x:.3f} degrees<br>'
+                        'Intensity: %{customdata:.4g}<extra></extra>'
                     ),
-                    row=row,
-                    col=col,
-                )
+                    customdata=y,
+                ),
+                row=1,
+                col=1,
+            )
 
-                # Detected peak markers are overlaid on the raw-intensity grid.
-                if mode_index == 0 and pattern.peaks:
-                    px = [optional_float(p.two_theta_deg) for p in pattern.peaks]
-                    py = [optional_float(p.intensity) for p in pattern.peaks]
-                    valid = [
-                        (a, b)
-                        for a, b in zip(px, py)
-                        if a is not None and b is not None
-                    ]
-                    if valid:
-                        fig.add_trace(
-                            go.Scatter(
-                                x=[v[0] for v in valid],
-                                y=[v[1] for v in valid],
-                                mode='markers',
-                                marker=dict(color=color, size=5, symbol='x'),
-                                showlegend=False,
-                                hovertemplate='Detected peak<br>2θ: %{x:.3f}°<extra></extra>',
+            fig.add_trace(
+                go.Scatter(
+                    x=x,
+                    y=normalized_y_offset,
+                    mode='lines',
+                    name=f'{pattern.position_label} normalized',
+                    legendgroup=pattern.position_label,
+                    showlegend=False,
+                    line=dict(color=color, width=1.5),
+                    connectgaps=False,
+                    hovertemplate=(
+                        f'{pattern.position_label}<br>'
+                        '2-theta: %{x:.3f} degrees<br>'
+                        'Normalized intensity: %{customdata:.4g}<extra></extra>'
+                    ),
+                    customdata=normalized_y,
+                ),
+                row=2,
+                col=1,
+            )
+
+            if pattern.peaks:
+                peak_positions = [
+                    optional_float(peak.two_theta_deg) for peak in pattern.peaks
+                ]
+                peak_intensities = [
+                    optional_float(peak.intensity) for peak in pattern.peaks
+                ]
+                valid_peaks = [
+                    (position, intensity)
+                    for position, intensity in zip(peak_positions, peak_intensities)
+                    if position is not None and intensity is not None
+                ]
+                if valid_peaks:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[position for position, _ in valid_peaks],
+                            y=[
+                                intensity + index * raw_offset
+                                for _, intensity in valid_peaks
+                            ],
+                            mode='markers',
+                            name=f'{pattern.position_label} peaks',
+                            legendgroup=pattern.position_label,
+                            showlegend=False,
+                            marker=dict(color=color, size=6, symbol='x'),
+                            hovertemplate=(
+                                f'{pattern.position_label} detected peak<br>'
+                                '2-theta: %{x:.3f} degrees<br>'
+                                'Intensity: %{y:.4g}<extra></extra>'
                             ),
-                            row=row,
-                            col=col,
-                        )
+                        ),
+                        row=1,
+                        col=1,
+                    )
 
-                fig.update_xaxes(
-                    range=[x_min, x_max],
-                    showgrid=True,
-                    gridcolor='rgba(180,180,180,0.25)',
-                    row=row,
-                    col=col,
-                )
-                fig.update_yaxes(
-                    title_text=y_title,
-                    showgrid=True,
-                    gridcolor='rgba(180,180,180,0.25)',
-                    row=row,
-                    col=col,
-                )
-                if mode_index == LOG_INTENSITY_MODE_INDEX:
-                    fig.update_yaxes(type='log', row=row, col=col)
-                if index // ncols == nrows - 1:
-                    fig.update_xaxes(title_text='2θ (°)', row=row, col=col)
+                    scale = (
+                        max(abs(float(np.nanmax(y))), abs(float(np.nanmin(y))))
+                        if y.size
+                        else 0.0
+                    )
+                    normalized_peak_values = [
+                        intensity / scale if scale > 0 else intensity
+                        for _, intensity in valid_peaks
+                    ]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[position for position, _ in valid_peaks],
+                            y=[
+                                intensity + index * normalized_offset
+                                for intensity in normalized_peak_values
+                            ],
+                            mode='markers',
+                            name=f'{pattern.position_label} normalized peaks',
+                            legendgroup=pattern.position_label,
+                            showlegend=False,
+                            marker=dict(color=color, size=6, symbol='x'),
+                            hovertemplate=(
+                                f'{pattern.position_label} detected peak<br>'
+                                '2-theta: %{x:.3f} degrees<br>'
+                                'Normalized intensity: %{customdata:.4g}<extra></extra>'
+                            ),
+                            customdata=normalized_peak_values,
+                        ),
+                        row=2,
+                        col=1,
+                    )
 
-        # Spatial schematic. Filename coordinates are the rectangle centres.
+        for row in (1, 2):
+            fig.update_xaxes(
+                title_text='2-theta (degrees)',
+                range=[x_min, x_max],
+                showgrid=True,
+                gridcolor='rgba(180,180,180,0.3)',
+                row=row,
+                col=1,
+            )
+            fig.update_yaxes(
+                title_text=(
+                    f'Intensity + {raw_offset:g} counts per pattern'
+                    if row == 1
+                    else f'Normalized intensity + {normalized_offset:g} per pattern'
+                ),
+                showgrid=True,
+                gridcolor='rgba(180,180,180,0.3)',
+                row=row,
+                col=1,
+            )
+
+        # Filename coordinates are the centres of the measurement footprints.
         points = []
-        for p in patterns:
-            x = optional_float(p.x_mm)
-            y = optional_float(p.y_mm)
-            phi = optional_float(p.phi_deg) or 0.0
+        for pattern in patterns:
+            x = optional_float(pattern.x_mm)
+            y = optional_float(pattern.y_mm)
+            phi = optional_float(pattern.phi_deg) or 0.0
             if x is not None and y is not None:
-                points.append((p, x, y, phi))
+                points.append((pattern, x, y, phi))
 
         max_coord = max([max(abs(x), abs(y)) for _, x, y, _ in points] or [10.0])
         diameter = optional_float(self.film_diameter_mm)
@@ -486,8 +545,8 @@ class XRDRun(EntryData, PlotSection):
         rect_height = optional_float(self.measurement_height_mm)
 
         dimensions_supplied = all(
-            v is not None and v > 0
-            for v in (diameter, notch_width, notch_depth, rect_width, rect_height)
+            value is not None and value > 0
+            for value in (diameter, notch_width, notch_depth, rect_width, rect_height)
         )
 
         radius = (
@@ -510,9 +569,8 @@ class XRDRun(EntryData, PlotSection):
 
         half_notch = min(notch_width / 2, radius * 0.45)
         notch_y = np.sqrt(max(radius**2 - half_notch**2, 0.0))
-        theta0 = np.pi / 2 + np.arcsin(half_notch / radius)
-        theta1 = 2 * np.pi + np.pi / 2 - np.arcsin(half_notch / radius)
-        theta = np.linspace(theta0, theta1, 240)
+        notch_angle = np.arcsin(half_notch / radius)
+        theta = np.linspace(np.pi / 2 + notch_angle, 5 * np.pi / 2 - notch_angle, 240)
         film_x = list(radius * np.cos(theta)) + [
             half_notch,
             half_notch,
@@ -526,7 +584,6 @@ class XRDRun(EntryData, PlotSection):
             notch_y,
         ]
 
-        map_row = total_rows
         fig.add_trace(
             go.Scatter(
                 x=film_x,
@@ -539,12 +596,12 @@ class XRDRun(EntryData, PlotSection):
                 showlegend=False,
                 hoverinfo='skip',
             ),
-            row=map_row,
+            row=3,
             col=1,
         )
 
-        for p, cx, cy, phi in points:
-            color = colors[id(p)]
+        for pattern, center_x, center_y, phi in points:
+            color = colors[id(pattern)]
             angle = np.deg2rad(phi)
             corners = np.array(
                 [
@@ -558,43 +615,44 @@ class XRDRun(EntryData, PlotSection):
                 [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
             )
             corners = corners @ rotation.T
-            rx = list(corners[:, 0] + cx)
-            ry = list(corners[:, 1] + cy)
-            rx.append(rx[0])
-            ry.append(ry[0])
+            rectangle_x = list(corners[:, 0] + center_x)
+            rectangle_y = list(corners[:, 1] + center_y)
+            rectangle_x.append(rectangle_x[0])
+            rectangle_y.append(rectangle_y[0])
 
-            # Plotly qualitative palettes are normally hexadecimal colours.
             red, green, blue = hex_to_rgb(color)
-            fill = f'rgba({red},{green},{blue},0.30)'
-
             fig.add_trace(
                 go.Scatter(
-                    x=rx,
-                    y=ry,
+                    x=rectangle_x,
+                    y=rectangle_y,
                     mode='lines',
                     fill='toself',
-                    fillcolor=fill,
+                    fillcolor=f'rgba({red},{green},{blue},0.30)',
                     line=dict(color=color, width=2),
-                    name=p.position_label,
+                    name=pattern.position_label,
                     showlegend=False,
                     hovertemplate=(
-                        f'{p.position_label}<br>X={cx:g} mm<br>'
-                        f'Y={cy:g} mm<br>φ={phi:g}°<extra></extra>'
+                        f'{pattern.position_label}<br>X={center_x:g} mm<br>'
+                        f'Y={center_y:g} mm<br>phi={phi:g} degrees<extra></extra>'
                     ),
                 ),
-                row=map_row,
+                row=3,
                 col=1,
             )
             fig.add_trace(
                 go.Scatter(
-                    x=[cx],
-                    y=[cy],
+                    x=[center_x],
+                    y=[center_y],
                     mode='markers',
-                    marker=dict(color=color, size=6, line=dict(color='white', width=1)),
+                    marker=dict(
+                        color=color,
+                        size=6,
+                        line=dict(color='white', width=1),
+                    ),
                     showlegend=False,
                     hoverinfo='skip',
                 ),
-                row=map_row,
+                row=3,
                 col=1,
             )
 
@@ -604,7 +662,7 @@ class XRDRun(EntryData, PlotSection):
             range=[-map_limit, map_limit],
             showgrid=True,
             zeroline=True,
-            row=map_row,
+            row=3,
             col=1,
         )
         fig.update_yaxes(
@@ -612,55 +670,56 @@ class XRDRun(EntryData, PlotSection):
             range=[-map_limit, map_limit],
             showgrid=True,
             zeroline=True,
-            scaleanchor=f'x{(map_row - 1) * ncols + 1}',
+            scaleanchor='x3',
             scaleratio=1,
-            row=map_row,
+            row=3,
             col=1,
         )
-
-        map_axis = (map_row - 1) * ncols + 1
         fig.add_annotation(
             x=0.97,
             y=0.95,
-            xref=f'x{map_axis} domain',
-            yref=f'y{map_axis} domain',
-            text='N ↑',
+            xref='x3 domain',
+            yref='y3 domain',
+            text='N',
             showarrow=False,
             font=dict(size=15, color='#263238'),
         )
         note = (
             'Dimensions supplied'
             if dimensions_supplied
-            else 'SCHEMATIC — NOT TO SCALE. Set film diameter, notch and footprint dimensions in the ELN fields.'
+            else 'SCHEMATIC - NOT TO SCALE. Set film diameter, notch and footprint dimensions in the ELN fields.'
         )
         fig.add_annotation(
             x=0.5,
             y=0.02,
-            xref=f'x{map_axis} domain',
-            yref=f'y{map_axis} domain',
+            xref='x3 domain',
+            yref='y3 domain',
             text=note,
             showarrow=False,
             font=dict(size=11, color='#555'),
         )
 
         fig.update_layout(
-            title=(
-                'Spatially Resolved XRD: Raw, Normalized and Log Intensity '
-                'with Sample Measurement Map'
-            ),
+            title='Spatially Resolved XRD Patterns',
             template='plotly_white',
-            width=1800,
-            height=max(2100, 260 * total_rows),
-            margin=dict(l=65, r=35, t=110, b=55),
+            width=1600,
+            height=1500,
+            margin=dict(l=65, r=35, t=150, b=55),
             hovermode='closest',
-            showlegend=False,
-            font=dict(size=10),
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='left',
+                x=0,
+                groupclick='togglegroup',
+            ),
+            font=dict(size=11),
         )
 
-        # Exactly one PlotlyFigure is attached to this NOMAD archive entry.
         self.figures = [
             PlotlyFigure(
-                label='Complete XRD Archive Plot',
+                label='Offset XRD Patterns and Sample Map',
                 figure=fig.to_plotly_json(),
             )
         ]

@@ -24,6 +24,7 @@ from nomad.datamodel.metainfo.plot import PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
 
 import nomad_combinatorial_thin_film.plugin.utils as plu
+from nomad_combinatorial_thin_film.categories import Uppsala
 
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 m_package = Package(
     name='Image Analysis Schema',
     description='Schema for storing image analysis results and metadata in NOMAD.',
+    categories=[Uppsala],
 )
 
 

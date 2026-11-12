@@ -7,9 +7,12 @@ from nomad.datamodel.metainfo.annotations import ELNAnnotation, SectionPropertie
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
 
+from nomad_combinatorial_thin_film.categories import Uppsala
+
 m_package = Package(
     name='Uppsala Sputtering Experiment Plan',
     description='Recipe, system state, and predicted composition profiles for sputtering plans.',
+    categories=[Uppsala],
 )
 
 
@@ -242,6 +245,7 @@ class SputteringExperimentPlan(EntryData, PlotSection):
     """Parsed experiment plan with source and deposition-map plots."""
 
     m_def = Section(
+        categories=[Uppsala],
         label='Sputtering Experiment Plan',
         a_eln=ELNAnnotation(
             properties=SectionProperties(

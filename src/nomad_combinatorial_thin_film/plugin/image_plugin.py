@@ -16,15 +16,23 @@
 # limitations under the License.
 #
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from nomad.datamodel.data import ArchiveSection, EntryData
+from nomad.datamodel.data import ArchiveSection
+from nomad.datamodel.metainfo.action import ActionSection
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, SectionProperties
+from nomad.datamodel.metainfo.eln import ElnParserSection
 from nomad.datamodel.metainfo.plot import PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
 
 import nomad_combinatorial_thin_film.plugin.utils as plu
 from nomad_combinatorial_thin_film.categories import Uppsala
+from nomad_combinatorial_thin_film.plugin.eln_utils import (
+    get_source_path,
+    register_derived_upload_file,
+    replace_section_data,
+)
 
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive
@@ -536,20 +544,7 @@ class ImageData(PlotSection, ArchiveSection):
 
     def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         """Normalize image data."""
-
         super().normalize(archive, logger)
-
-        if self.image_array:
-            try:
-                image_path = archive.m_context.raw_file(str(self.image_array))
-
-                self.create_image_plot(
-                    image_path,
-                    logger,
-                )
-
-            except Exception as exc:
-                logger.warning(f'Could not generate image plot: {exc}')
 
     def create_image_plot(self, npy_path, logger=None) -> None:
         """Create an in-NOMAD Plotly image visualization from the NPY data."""
@@ -612,17 +607,37 @@ class ImageExperimentRun(ArchiveSection):
         super().normalize(archive, logger)
 
 
-class ImageDataset(PlotSection, EntryData):
+class ImageReloadAction(ActionSection):
+    """Button for explicitly reloading source-derived image data."""
+
+    action_trigger = Quantity(
+        type=bool,
+        description='Replace parsed values with values from the uploaded image files.',
+        a_eln={
+            'component': 'ActionEditQuantity',
+            'label': 'Reload from source',
+        },
+    )
+
+    def perform_action(self, archive, logger):
+        self.m_parent.reload_from_source(archive, logger)
+
+
+class ImageDataset(PlotSection, ElnParserSection):
     """
     Represents a collection of image experiment measurements.
     Contains multiple ImageExperimentRun entries as subsections.
     """
 
     m_def = Section(
+        categories=[Uppsala],
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
+                    'data_file',
                     'name',
+                    'user_notes',
+                    'reload_action',
                     'synthesis_conditions',
                     'measurements',
                 ]
@@ -636,6 +651,25 @@ class ImageDataset(PlotSection, EntryData):
         a_eln={'component': 'StringEditQuantity'},
     )
 
+    data_file = Quantity(
+        type=str,
+        description='Uploaded source file used to populate this image dataset.',
+        a_eln={'component': 'FileEditQuantity'},
+    )
+
+    user_notes = Quantity(
+        type=str,
+        description='User notes preserved when source data is reloaded.',
+        a_eln={'component': 'RichTextEditQuantity'},
+    )
+
+    source_loaded = Quantity(
+        type=bool,
+        description='Internal flag indicating that source data was loaded.',
+    )
+
+    reload_action = SubSection(section_def=ImageReloadAction)
+
     measurements = SubSection(
         section_def=ImageExperimentRun,
         description='Collection of image experiment measurements.',
@@ -648,14 +682,71 @@ class ImageDataset(PlotSection, EntryData):
     )
 
     def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
-        """Normalize the dataset."""
+        """Load source data once and refresh plots from the current ELN values."""
+        if self.reload_action is None:
+            self.reload_action = ImageReloadAction()
+
         super().normalize(archive, logger)
 
-        try:
-            if not getattr(self, 'figures', None):
-                self.figures = plu.collect_image_dataset_figures(self.measurements)
-        except Exception as exc:
-            logger.warning('Could not set dataset figures: %s', exc)
+        if not self.source_loaded:
+            self.reload_from_source(archive, logger)
+        else:
+            self.refresh_plots(archive, logger)
+
+    def reload_from_source(self, archive: 'EntryArchive', logger: 'BoundLogger'):
+        """Replace source-derived values and figures from the uploaded files."""
+        if not self.data_file:
+            logger.warning('No source image file is assigned; cannot reload data.')
+            return
+
+        from nomad_combinatorial_thin_film.parser.image_parser import (
+            build_image_dataset,
+        )
+
+        source_path = get_source_path(archive, self.data_file)
+        parsed_dataset = build_image_dataset(
+            source_path.parent,
+            logger,
+            upload_root=Path(archive.m_context.raw_path()),
+        )
+        if parsed_dataset is None:
+            return
+
+        for measurement in parsed_dataset.measurements:
+            image = measurement.image
+            if image is None:
+                continue
+            register_derived_upload_file(archive, image.image_preview)
+            if image.visualization is not None:
+                register_derived_upload_file(
+                    archive,
+                    image.visualization.image_file,
+                )
+
+        replace_section_data(
+            self,
+            parsed_dataset,
+            preserved_names={
+                'data_file',
+                'source_loaded',
+                'user_notes',
+                'reload_action',
+            },
+        )
+        self.source_loaded = True
+        self.refresh_plots(archive, logger)
+
+    def refresh_plots(self, archive: 'EntryArchive', logger: 'BoundLogger'):
+        """Regenerate image previews and dataset figures from current values."""
+        raw_root = Path(archive.m_context.raw_path())
+        for measurement in self.measurements:
+            image = measurement.image
+            if image is None or not image.image_array:
+                continue
+            npy_path = raw_root / image.image_array
+            image.create_image_plot(npy_path, logger)
+
+        self.figures = plu.collect_image_dataset_figures(self.measurements)
 
 
 m_package.__init_metainfo__()

@@ -1,33 +1,37 @@
-from nomad.config.models.plugins import ParserEntryPoint
+from nomad.config.models.plugins import ElnParserEntryPoint, ParserEntryPoint
 
 
-class ImageParserEntryPoint(ParserEntryPoint):
+class PortableElnParserEntryPoint(ElnParserEntryPoint):
+    """ELN parser entry point that normalizes source paths on Windows."""
+
     def load(self):
-        from nomad_combinatorial_thin_film.parser.image_parser import DataRootParser
-
-        return DataRootParser(**self.dict())
-
-
-class HyperspectralParserEntryPoint(ParserEntryPoint):
-    def load(self):
-        from nomad_combinatorial_thin_film.parser.hyperspectral_parser import (
-            HyperspectralRootParser,
+        from nomad_combinatorial_thin_film.parser.eln_parser import (
+            PortableElnMatchingParser,
         )
 
-        return HyperspectralRootParser(**self.dict())
+        return PortableElnMatchingParser(**self.model_dump())
 
 
-image_parser_entry_point = ImageParserEntryPoint(
+image_parser_entry_point = PortableElnParserEntryPoint(
     name='ImageParser',
     description='Parser for image datasets with metadata, ROI, and dimensions.',
     mainfile_name_re=r'.*(synthesis\.json)$',
+    eln_m_def=(
+        'nomad_combinatorial_thin_film.plugin.image_plugin.ImageDataset'
+    ),
+    data_type='RGB image dataset',
 )
 
 
-hyperspectral_parser_entry_point = HyperspectralParserEntryPoint(
+hyperspectral_parser_entry_point = PortableElnParserEntryPoint(
     name='HyperspectralParser',
     description='Parser for hyperspectral ENVI datasets with .hdr/.bil cube files.',
     mainfile_name_re=r'.*(\.hdr)$',
+    eln_m_def=(
+        'nomad_combinatorial_thin_film.plugin.hyperspectral_plugin.'
+        'HyperspectralDataset'
+    ),
+    data_type='Hyperspectral ENVI dataset',
 )
 
 
@@ -50,22 +54,17 @@ experiment_plan_parser_entry_point = ExperimentPlanParserEntryPoint(
 )
 
 
-class SulfurizationParserEntryPoint(ParserEntryPoint):
-    def load(self):
-        from nomad_combinatorial_thin_film.parser.sulfurization_parser import (
-            SulfurizationParser,
-        )
-
-        return SulfurizationParser(**self.dict())
-
-
-sulfurization_parser_entry_point = SulfurizationParserEntryPoint(
+sulfurization_parser_entry_point = PortableElnParserEntryPoint(
     name='SulfurizationParser',
     description=(
         'Parser for PicoLog PLW sulfurization temperature measurements, '
         'holding-period detection and temperature stability analysis.'
     ),
     mainfile_name_re=r'(?i).*\.plw$',
+    eln_m_def=(
+        'nomad_combinatorial_thin_film.plugin.sulfurization.SulfurizationRun'
+    ),
+    data_type='Sulfurization measurement',
 )
 
 
@@ -87,3 +86,25 @@ xrd_parser_entry_point = XRDParserEntryPoint(
     ),
     mainfile_name_re=r'(?i)^.*\.(?:zip|xrdzip)$',
 )
+
+
+
+class RTPParserEntryPoint(ParserEntryPoint):
+    def load(self):
+        from nomad_combinatorial_thin_film.parser.rtp_parser import (
+            RTPParser,
+        )
+
+        return RTPParser(**self.dict())
+
+
+rtp_parser_entry_point = RTPParserEntryPoint(
+    name="RTPParser",
+    description=(
+        "Parser for rapid thermal processing JSON files "
+        "containing process metadata and time-series measurements."
+    ),
+    mainfile_name_re=r".*\.json$",
+    mainfile_contents_re=r'"run_id"\s*:',
+)
+

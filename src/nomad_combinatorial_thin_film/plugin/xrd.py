@@ -20,6 +20,7 @@ m_package = Package(
         'Spatially resolved XRD measurements, '
         'experimental peak detection and visualization.'
     ),
+    categories=[Uppsala],
 )
 
 # ============================================================

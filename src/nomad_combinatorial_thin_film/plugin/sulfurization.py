@@ -2,15 +2,21 @@
 
 import numpy as np
 import plotly.graph_objects as go
-from nomad.datamodel.data import ArchiveSection, EntryData
+from nomad.datamodel.data import ArchiveSection
+from nomad.datamodel.metainfo.action import ActionSection
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
     SectionProperties,
 )
+from nomad.datamodel.metainfo.eln import ElnParserSection
 from nomad.datamodel.metainfo.plot import PlotlyFigure, PlotSection
-from nomad.metainfo import Package, Quantity, Section, SubSection
+from nomad.metainfo import Datetime, Package, Quantity, Section, SubSection
 
 from nomad_combinatorial_thin_film.categories import Uppsala
+from nomad_combinatorial_thin_film.plugin.eln_utils import (
+    get_source_path,
+    replace_section_data,
+)
 
 m_package = Package(
     name='Uppsala Sulfurization Experiment',
@@ -18,6 +24,7 @@ m_package = Package(
         'PicoLog sulfurization temperature measurements, '
         'holding-period detection and temperature stability analysis.'
     ),
+    categories=[Uppsala],
 )
 
 
@@ -45,6 +52,7 @@ class SulfurizationChannel(ArchiveSection):
     channel_id = Quantity(
         type=int,
         description='Original PicoLog channel/parameter ID.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     name = Quantity(
@@ -56,37 +64,44 @@ class SulfurizationChannel(ArchiveSection):
     unit = Quantity(
         type=str,
         description='Measurement unit from the PLW configuration.',
+        a_eln=ELNAnnotation(component='StringEditQuantity'),
     )
 
     values = Quantity(
         type=np.float64,
         shape=['*'],
         description='Complete measurement time series.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     mean = Quantity(
         type=np.float64,
         description='Mean value during the detected holding period.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     std = Quantity(
         type=np.float64,
         description='Sample standard deviation during the holding period.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     minimum = Quantity(
         type=np.float64,
         description='Minimum value during the detected holding period.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     maximum = Quantity(
         type=np.float64,
         description='Maximum value during the detected holding period.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     range = Quantity(
         type=np.float64,
         description='Maximum minus minimum during the holding period.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
 
@@ -115,61 +130,87 @@ class SulfurizationHoldingPeriod(ArchiveSection):
     hold_channel = Quantity(
         type=str,
         description='Channel used to identify the holding period.',
+        a_eln=ELNAnnotation(component='StringEditQuantity'),
     )
 
     target_temperature_c = Quantity(
         type=np.float64,
         unit='°C',
         description='Target temperature used for holding-period detection.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     temperature_tolerance_c = Quantity(
         type=np.float64,
         unit='°C',
         description='Allowed deviation from the target temperature.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     minimum_duration_s = Quantity(
         type=np.float64,
         unit='s',
         description='Minimum continuous stable duration.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     detected = Quantity(
         type=bool,
         description='Whether a qualifying stable interval was detected.',
+        a_eln=ELNAnnotation(component='BoolEditQuantity'),
     )
 
     start_index = Quantity(
         type=int,
         description='First sample index of the selected stable interval.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     end_index = Quantity(
         type=int,
         description='Last sample index of the selected stable interval.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     start_time_s = Quantity(
         type=np.float64,
         unit='s',
         description='Start time of the selected interval.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     end_time_s = Quantity(
         type=np.float64,
         unit='s',
         description='End time of the selected interval.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     duration_s = Quantity(
         type=np.float64,
         unit='s',
         description='Duration of the selected stable interval.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
 
-class SulfurizationRun(EntryData, PlotSection):
+class SulfurizationReloadAction(ActionSection):
+    """Button for explicitly reloading source-derived sulfurization data."""
+
+    action_trigger = Quantity(
+        type=bool,
+        description='Replace parsed values with values from the original PLW file.',
+        a_eln=ELNAnnotation(
+            component='ActionEditQuantity',
+            label='Reload from source',
+        ),
+    )
+
+    def perform_action(self, archive, logger):
+        self.m_parent.reload_from_source(archive, logger)
+
+
+class SulfurizationRun(ElnParserSection, PlotSection):
     """Sulfurization measurement and temperature stability analysis."""
 
     m_def = Section(
@@ -178,7 +219,11 @@ class SulfurizationRun(EntryData, PlotSection):
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
+                    'data_file',
                     'source_filename',
+                    'measurement_datetime',
+                    'user_notes',
+                    'reload_action',
                     'plw_version',
                     'sample_number',
                     'number_of_channels',
@@ -195,51 +240,88 @@ class SulfurizationRun(EntryData, PlotSection):
         ),
     )
 
+    data_file = Quantity(
+        type=str,
+        description='Uploaded PLW source file used to populate this ELN entry.',
+        a_eln=ELNAnnotation(component='FileEditQuantity'),
+    )
+
     source_filename = Quantity(
         type=str,
         description='Original PicoLog PLW filename.',
+        a_eln=ELNAnnotation(component='FileEditQuantity'),
     )
+
+    measurement_datetime = Quantity(
+        type=Datetime,
+        description=(
+            'Date and time of the sulfurization measurement. '
+            'The PLW file does not contain an absolute timestamp.'
+        ),
+        a_eln=ELNAnnotation(component='DateTimeEditQuantity'),
+    )
+
+    user_notes = Quantity(
+        type=str,
+        description='User notes preserved when source data is reloaded.',
+        a_eln=ELNAnnotation(component='RichTextEditQuantity'),
+    )
+
+    source_loaded = Quantity(
+        type=bool,
+        description='Internal flag indicating that source data was loaded.',
+    )
+
+    reload_action = SubSection(section_def=SulfurizationReloadAction)
 
     plw_version = Quantity(
         type=int,
         description='PicoLog file version.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     sample_number = Quantity(
         type=int,
         description='Sample number recorded in the PLW header.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     number_of_channels = Quantity(
         type=int,
         description='Number of measurement channels.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     number_of_samples = Quantity(
         type=int,
         description='Number of recorded samples.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     sampling_interval = Quantity(
         type=int,
         description='Sampling interval in the original PLW time units.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     time_unit_code = Quantity(
         type=int,
         description='Original PicoLog time-unit code.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     recorded_duration_s = Quantity(
         type=np.float64,
         unit='s',
         description='Total recorded duration.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     channel_ids = Quantity(
         type=int,
         shape=['*'],
         description='Original PicoLog channel identifiers.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     time_s = Quantity(
@@ -247,6 +329,7 @@ class SulfurizationRun(EntryData, PlotSection):
         shape=['*'],
         unit='s',
         description='Elapsed measurement time in seconds.',
+        a_eln=ELNAnnotation(component='NumberEditQuantity'),
     )
 
     holding_period = SubSection(section_def=SulfurizationHoldingPeriod)
@@ -281,6 +364,22 @@ class SulfurizationRun(EntryData, PlotSection):
                     line=dict(width=1.5),
                 )
             )
+
+        if self.holding_period is None:
+            fig.update_layout(
+                title='Sulfurization Temperature Profile',
+                xaxis_title='Time (s)',
+                yaxis_title='Measurement value',
+                template='plotly_white',
+                hovermode='x unified',
+            )
+            self.figures = [
+                PlotlyFigure(
+                    label='Sulfurization Temperature Profile',
+                    figure=fig.to_plotly_json(),
+                )
+            ]
+            return
 
         # --------------------------------------------------
         # Holding-period configuration
@@ -441,6 +540,47 @@ class SulfurizationRun(EntryData, PlotSection):
                 figure=fig.to_plotly_json(),
             )
         ]
+
+    def normalize(self, archive, logger):
+        if self.reload_action is None:
+            self.reload_action = SulfurizationReloadAction()
+
+        super().normalize(archive, logger)
+
+        if not self.source_loaded:
+            self.reload_from_source(archive, logger)
+        else:
+            self.plot()
+
+    def reload_from_source(self, archive, logger):
+        """Replace parsed values from the original PLW and redraw the plot."""
+        if not self.data_file:
+            logger.warning('No source PLW file is assigned; cannot reload data.')
+            return
+
+        from nomad_combinatorial_thin_film.parser.sulfurization_parser import (
+            build_sulfurization_run,
+        )
+
+        source_path = get_source_path(archive, self.data_file)
+        parsed_run = build_sulfurization_run(source_path, logger)
+        if parsed_run is None:
+            return
+
+        replace_section_data(
+            self,
+            parsed_run,
+            preserved_names={
+                'data_file',
+                'measurement_datetime',
+                'source_loaded',
+                'user_notes',
+                'reload_action',
+            },
+        )
+        self.source_filename = self.data_file
+        self.source_loaded = True
+        self.plot()
 
 
 m_package.__init_metainfo__()

@@ -1,7 +1,9 @@
 from typing import TYPE_CHECKING
 
-from nomad.datamodel.data import ArchiveSection, EntryData
+from nomad.datamodel.data import ArchiveSection
+from nomad.datamodel.metainfo.action import ActionSection
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, SectionProperties
+from nomad.datamodel.metainfo.eln import ElnParserSection
 from nomad.datamodel.metainfo.plot import PlotSection
 from nomad.metainfo import Package, Quantity, Section, SubSection
 
@@ -11,6 +13,9 @@ if TYPE_CHECKING:
 
 import nomad_combinatorial_thin_film.plugin.utils as plu
 from nomad_combinatorial_thin_film.categories import Uppsala
+from nomad_combinatorial_thin_film.plugin.eln_utils import (
+    replace_section_data,
+)
 
 m_package = Package(
     name='hyperspectral_image_plugin',
@@ -56,7 +61,10 @@ class AcquisitionMetadata(ArchiveSection):
     interleave = Quantity(
         type=str,
         description='BIL, BSQ or BIP',
-        a_eln={'choices': ['bil', 'bsq', 'bip', 'BIL', 'BSQ', 'BIP']},
+        a_eln={
+            'component': 'StringEditQuantity',
+            'choices': ['bil', 'bsq', 'bip', 'BIL', 'BSQ', 'BIP'],
+        },
     )
 
     data_type = Quantity(
@@ -207,6 +215,7 @@ class CubeMetadata(ArchiveSection):
         shape=['*'],
         unit='nanometer',
         description='Wavelength values corresponding to each spectral band.',
+        a_eln={'component': 'NumberEditQuantity'},
     )
 
     wavelength_min_nm = Quantity(
@@ -226,7 +235,10 @@ class CubeMetadata(ArchiveSection):
     interleave = Quantity(
         type=str,
         description='BIL, BSQ or BIP.',
-        a_eln={'choices': ['bil', 'bsq', 'bip', 'BIL', 'BSQ', 'BIP']},
+        a_eln={
+            'component': 'StringEditQuantity',
+            'choices': ['bil', 'bsq', 'bip', 'BIL', 'BSQ', 'BIP'],
+        },
     )
 
     data_type = Quantity(
@@ -285,18 +297,6 @@ class HyperspectralAnalysis(
 ):
     def normalize(self, archive: 'EntryArchive', logger: 'BoundLogger') -> None:
         super().normalize(archive, logger)
-
-        try:
-            measurement = self.m_parent
-            if measurement is None or measurement.raw_data is None:
-                return
-
-            cube_path = archive.m_context.raw_file(str(measurement.raw_data.cube_npy))
-            hdr_path = archive.m_context.raw_file(str(measurement.raw_data.hdr_file))
-            self.create_analysis_figures(cube_path, hdr_path, logger)
-
-        except Exception as exc:
-            logger.warning('Failed to generate hyperspectral analysis figures: %s', exc)
 
     def create_analysis_figures(self, cube_path, hdr_path, logger=None):
         self.figures = plu.create_hyperspectral_overview_figures(
@@ -375,12 +375,32 @@ class HyperspectralMeasurement(ArchiveSection):
 # ============================================================
 
 
-class HyperspectralDataset(PlotSection, EntryData):
+class HyperspectralReloadAction(ActionSection):
+    """Button for explicitly reloading source-derived hyperspectral data."""
+
+    action_trigger = Quantity(
+        type=bool,
+        description='Replace parsed values with values from the uploaded ENVI files.',
+        a_eln={
+            'component': 'ActionEditQuantity',
+            'label': 'Reload from source',
+        },
+    )
+
+    def perform_action(self, archive, logger):
+        self.m_parent.reload_from_source(archive, logger)
+
+
+class HyperspectralDataset(PlotSection, ElnParserSection):
     m_def = Section(
+        categories=[Uppsala],
         a_eln=ELNAnnotation(
             properties=SectionProperties(
                 order=[
+                    'data_file',
                     'name',
+                    'user_notes',
+                    'reload_action',
                     'measurements',
                 ]
             )
@@ -392,6 +412,25 @@ class HyperspectralDataset(PlotSection, EntryData):
         a_eln={'component': 'StringEditQuantity'},
     )
 
+    data_file = Quantity(
+        type=str,
+        description='Uploaded ENVI header file used to populate this dataset.',
+        a_eln={'component': 'FileEditQuantity'},
+    )
+
+    user_notes = Quantity(
+        type=str,
+        description='User notes preserved when source data is reloaded.',
+        a_eln={'component': 'RichTextEditQuantity'},
+    )
+
+    source_loaded = Quantity(
+        type=bool,
+        description='Internal flag indicating that source data was loaded.',
+    )
+
+    reload_action = SubSection(section_def=HyperspectralReloadAction)
+
     measurements = SubSection(
         section_def=HyperspectralMeasurement,
         repeats=True,
@@ -402,10 +441,84 @@ class HyperspectralDataset(PlotSection, EntryData):
         archive,
         logger,
     ):
+        if self.reload_action is None:
+            self.reload_action = HyperspectralReloadAction()
+
         super().normalize(
             archive,
             logger,
         )
+
+        if not self.source_loaded:
+            self.reload_from_source(archive, logger)
+        else:
+            self.refresh_plots(archive, logger)
+
+    def reload_from_source(self, archive, logger):
+        """Replace source-derived data and figures from the ENVI files."""
+        if not self.data_file:
+            logger.warning('No source ENVI file is assigned; cannot reload data.')
+            return
+
+        from nomad_combinatorial_thin_film.parser.hyperspectral_parser import (
+            build_hyperspectral_dataset,
+        )
+
+        parsed_dataset = build_hyperspectral_dataset(
+            self.data_file,
+            logger,
+            context=archive.m_context,
+        )
+        if parsed_dataset is None:
+            return
+
+        replace_section_data(
+            self,
+            parsed_dataset,
+            preserved_names={
+                'data_file',
+                'source_loaded',
+                'user_notes',
+                'reload_action',
+            },
+        )
+        self.source_loaded = True
+        self.refresh_plots(archive, logger)
+
+    def refresh_plots(self, archive, logger):
+        """Regenerate measurement and dataset plots from the current files."""
+        import numpy as np
+
+        from nomad_combinatorial_thin_film.parser.utils import (
+            collect_dataset_figures,
+            extract_wavelengths,
+            read_envi_hdr,
+        )
+
+        for measurement in self.measurements:
+            if measurement.raw_data is None or measurement.visualization is None:
+                continue
+
+            with archive.m_context.raw_file(
+                measurement.raw_data.cube_npy,
+                'rb',
+            ) as cube_file:
+                cube = np.load(cube_file)
+            with archive.m_context.raw_file(
+                measurement.raw_data.hdr_file,
+                'rt',
+            ) as hdr_file:
+                hdr = read_envi_hdr(hdr_file)
+            wavelengths = extract_wavelengths(hdr)
+            measurement.visualization.figures = (
+                plu.create_hyperspectral_overview_figures(
+                    cube,
+                    wavelengths,
+                    logger,
+                )
+            )
+
+        self.figures = collect_dataset_figures(self.measurements)
 
 
 m_package.__init_metainfo__()

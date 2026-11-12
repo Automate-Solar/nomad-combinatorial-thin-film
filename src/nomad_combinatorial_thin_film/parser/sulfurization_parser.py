@@ -18,6 +18,49 @@ from nomad_combinatorial_thin_film.plugin.sulfurization import (
 logger = logging.getLogger(__name__)
 
 
+def load_existing_sulfurization_run(archive, logger=None):
+    """Restore the archived run so ELN edits survive reprocessing."""
+    log = logger or logging.getLogger(__name__)
+    metadata = archive.metadata
+    entry_id = getattr(metadata, 'entry_id', None)
+    context = archive.m_context
+    upload_files = getattr(context, 'upload_files', None)
+
+    if not entry_id:
+        log.info('No entry id is available; parsing the PLW source file.')
+        return None
+
+    if upload_files is None:
+        log.info('No upload archive is available; parsing the PLW source file.')
+        return None
+
+    try:
+        with upload_files.read_archive(entry_id) as archive_reader:
+            previous = archive_reader[entry_id]
+            previous_dict = (
+                previous.to_json() if hasattr(previous, 'to_json') else dict(previous)
+            )
+            previous_data = previous_dict.get('data', {})
+    except KeyError:
+        log.info('No previous sulfurization archive exists; parsing the PLW file.')
+        return None
+
+    if not isinstance(previous_data, dict) or not previous_data:
+        log.info('The previous archive has no sulfurization data; parsing the PLW file.')
+        return None
+
+    try:
+        return SulfurizationRun.m_from_dict(previous_data, m_context=context).m_copy(
+            deep=True
+        )
+    except (TypeError, ValueError, KeyError):
+        log.warning(
+            'Could not restore the previous sulfurization archive; parsing the PLW file.',
+            exc_info=True,
+        )
+        return None
+
+
 # ============================================================
 # 1. Analysis settings
 # ============================================================
@@ -545,6 +588,17 @@ def create_sulfurization_run(
     return run
 
 
+def build_sulfurization_run(filename, log):
+    """Read a PLW source file and return a populated sulfurization ELN section."""
+    metadata, time_data, channels = read_plw(filename)
+    log.info(
+        'PLW file contains %d channels and %d samples.',
+        metadata['n_channels'],
+        metadata['n_samples'],
+    )
+    return create_sulfurization_run(filename, metadata, time_data, channels)
+
+
 # ============================================================
 # 8. NOMAD parser
 # ============================================================
@@ -562,6 +616,16 @@ class SulfurizationParser(MatchingParser):
     ):
 
         log = logger or logging.getLogger(__name__)
+
+        existing_run = load_existing_sulfurization_run(archive, logger=log)
+        if existing_run is not None:
+            existing_run.plot()
+            archive.data = existing_run
+            log.info(
+                'Reusing the existing sulfurization data and preserving ELN edits; '
+                'the PLW source was not reread.'
+            )
+            return
 
         log.info(
             'Reading PicoLog sulfurization file: %s',
@@ -584,6 +648,9 @@ class SulfurizationParser(MatchingParser):
             time_data,
             channels,
         )
+
+        if archive.metadata and archive.metadata.mainfile:
+            run.source_filename = archive.metadata.mainfile
 
         archive.data = run
 

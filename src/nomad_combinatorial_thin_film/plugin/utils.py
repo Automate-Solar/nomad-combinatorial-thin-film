@@ -8,6 +8,80 @@ from nomad_combinatorial_thin_film.constants import (
     RGB_CHANNELS,
 )
 
+PCA_COMPONENT_COUNT = 3
+
+
+def _read_wavelengths(hdr_path, band_count, np):
+    """Read wavelength metadata or fall back to zero-based band numbers."""
+    if isinstance(hdr_path, (list, tuple, np.ndarray)):
+        wavelengths = np.asarray(hdr_path, dtype=float)
+        return (
+            wavelengths
+            if wavelengths.size == band_count
+            else np.arange(band_count, dtype=float)
+        )
+
+    from nomad_combinatorial_thin_film.parser.utils import read_envi_hdr
+
+    hdr = read_envi_hdr(str(hdr_path))
+    raw_wavelengths = hdr.get('wavelength')
+    if isinstance(raw_wavelengths, (list, tuple)):
+        wavelengths = np.asarray(raw_wavelengths, dtype=float)
+    elif isinstance(raw_wavelengths, str):
+        wavelengths = np.asarray(
+            [float(value) for value in raw_wavelengths.strip('{} \n').split(',')],
+            dtype=float,
+        )
+    else:
+        wavelengths = np.arange(band_count, dtype=float)
+
+    wavelength_unit = str(hdr.get('wavelength units', '')).strip().lower()
+    if wavelength_unit in {
+        'um',
+        'µm',
+        'μm',
+        'micron',
+        'microns',
+        'micrometer',
+        'micrometers',
+    }:
+        wavelengths = wavelengths * 1000
+
+    if wavelengths.size != band_count:
+        wavelengths = np.arange(band_count, dtype=float)
+    return wavelengths
+
+
+def _load_hyperspectral_cube(source, np):
+    """Accept an in-memory cube, open file, or NPY path."""
+    if isinstance(source, np.ndarray):
+        return source
+    if hasattr(source, 'read'):
+        return np.load(source)
+    return np.load(str(source), mmap_mode='r')
+
+
+def _sampled_cube(cube, max_side=150):
+    """Downsample only the spatial axes to keep interactive plots responsive."""
+    import numpy as np
+
+    stride = max(
+        1,
+        int(np.ceil(cube.shape[0] / max_side)),
+        int(np.ceil(cube.shape[1] / max_side)),
+    )
+    return np.asarray(cube[::stride, ::stride, :], dtype=float), stride
+
+
+def _finite_percentile_limits(values, np, lower=1, upper=99):
+    finite = np.asarray(values)[np.isfinite(values)]
+    if finite.size == 0:
+        return 0.0, 1.0
+    low, high = np.percentile(finite, [lower, upper])
+    if high <= low:
+        high = low + 1.0
+    return float(low), float(high)
+
 
 def create_mean_spectrum_plot(
     cube_path,
@@ -19,54 +93,60 @@ def create_mean_spectrum_plot(
         import numpy as np
         import plotly.graph_objects as go
 
-        from nomad_combinatorial_thin_film.parser.utils import (
-            read_envi_hdr,
-        )
-
-        cube = np.load(
-            str(cube_path),
-            mmap_mode='r',
-        )
-
-        hdr = read_envi_hdr(str(hdr_path))
-
-        # Be tolerant to different header formats: some readers
-        # provide a list, others a string like "{400.0,401.0,...}".
-        raw_wl = hdr.get('wavelength', None)
-        if isinstance(raw_wl, (list, tuple)):
-            wavelengths = np.array(raw_wl, dtype=float)
-        elif isinstance(raw_wl, str):
-            wavelengths = np.array([float(v) for v in raw_wl.strip('{} \n').split(',')])
-        else:
-            # fallback: use band indices if no wavelength info
-            wavelengths = np.arange(int(hdr.get('bands', 0)), dtype=float)
-
-        mean_spectrum = cube.mean(axis=(0, 1))
+        cube = _load_hyperspectral_cube(cube_path, np)
+        sample, _ = _sampled_cube(cube, max_side=180)
+        wavelengths = _read_wavelengths(hdr_path, cube.shape[2], np)
+        pixels = sample.reshape(-1, sample.shape[2])
+        mean_spectrum = np.nanmean(pixels, axis=0)
+        low_spectrum, high_spectrum = np.nanpercentile(pixels, [10, 90], axis=0)
 
         fig = go.Figure()
-
+        fig.add_trace(
+            go.Scatter(
+                x=wavelengths,
+                y=high_spectrum,
+                mode='lines',
+                line=dict(width=0),
+                hoverinfo='skip',
+                showlegend=False,
+                name='90th percentile',
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=wavelengths,
+                y=low_spectrum,
+                mode='lines',
+                line=dict(width=0),
+                fill='tonexty',
+                fillcolor='rgba(31, 119, 180, 0.18)',
+                hoverinfo='skip',
+                showlegend=True,
+                name='10th–90th percentile',
+            )
+        )
         fig.add_trace(
             go.Scatter(
                 x=wavelengths,
                 y=mean_spectrum,
                 mode='lines',
-                name='Mean Spectrum',
+                line=dict(color='#1769aa', width=2.5),
+                name='Spatial mean',
             )
         )
-
         fig.update_layout(
-            title='Mean Spectrum',
+            title='Mean spectrum and spatial variability',
             template='plotly_white',
             xaxis_title='Wavelength (nm)',
-            yaxis_title='Intensity',
-            width=850,
-            height=650,
+            yaxis_title='Signal intensity',
+            hovermode='x unified',
+            height=520,
+            margin=dict(l=70, r=30, t=70, b=60),
         )
+        fig.update_xaxes(showgrid=True, zeroline=False)
+        fig.update_yaxes(showgrid=True, zeroline=False)
 
-        return PlotlyFigure(
-            label='Mean Spectrum',
-            figure=fig.to_plotly_json(),
-        )
+        return PlotlyFigure(label='Mean spectrum', figure=fig.to_plotly_json())
 
     except Exception as exc:
         if logger:
@@ -86,10 +166,7 @@ def create_integrated_intensity_plot(
         import numpy as np
         import plotly.graph_objects as go
 
-        cube = np.load(
-            str(cube_path),
-            mmap_mode='r',
-        )
+        cube = _load_hyperspectral_cube(cube_path, np)
         integrated = cube.sum(axis=2)
         max_display_size = 1000
         scale = max(
@@ -129,6 +206,113 @@ def create_integrated_intensity_plot(
         return None
 
 
+def create_spatial_maps_plot(cube_path, hdr_path, logger=None):
+    """Show intensity, peak wavelength, and spectral variability together."""
+    try:
+        import numpy as np
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        cube = _load_hyperspectral_cube(cube_path, np)
+        sample, stride = _sampled_cube(cube, max_side=180)
+        wavelengths = _read_wavelengths(hdr_path, sample.shape[2], np)
+
+        intensity = np.nanmean(sample, axis=2)
+        finite_sample = np.where(np.isfinite(sample), sample, -np.inf)
+        peak_index = np.argmax(finite_sample, axis=2)
+        peak_wavelength = wavelengths[peak_index]
+        all_invalid = ~np.isfinite(sample).any(axis=2)
+        peak_wavelength[all_invalid] = np.nan
+        spectral_std = np.nanstd(sample, axis=2)
+
+        map_specs = [
+            (
+                intensity,
+                'Mean signal',
+                'Viridis',
+                'Signal',
+            ),
+            (
+                peak_wavelength,
+                'Peak wavelength',
+                'Turbo',
+                'Wavelength (nm)',
+            ),
+            (
+                spectral_std,
+                'Spectral variability',
+                'Magma',
+                'Standard deviation',
+            ),
+        ]
+        fig = make_subplots(
+            rows=1,
+            cols=3,
+            subplot_titles=[item[1] for item in map_specs],
+            horizontal_spacing=0.12,
+        )
+        colorbar_x = [0.285, 0.64, 0.995]
+        for column, (values, title, colorscale, colorbar_title) in enumerate(
+            map_specs,
+            start=1,
+        ):
+            low, high = _finite_percentile_limits(values, np)
+            fig.add_trace(
+                go.Heatmap(
+                    z=values,
+                    x=np.arange(values.shape[1]) * stride,
+                    y=np.arange(values.shape[0]) * stride,
+                    colorscale=colorscale,
+                    zmin=low,
+                    zmax=high,
+                    colorbar=dict(
+                        title=colorbar_title,
+                        x=colorbar_x[column - 1],
+                        len=0.78,
+                        thickness=12,
+                        outlinewidth=0,
+                    ),
+                    hovertemplate=(
+                        'Pixel X: %{x}<br>'
+                        'Pixel Y: %{y}<br>'
+                        f'{title}: %{{z:.4g}}<extra></extra>'
+                    ),
+                ),
+                row=1,
+                col=column,
+            )
+            fig.update_xaxes(
+                title_text='Pixel X',
+                row=1,
+                col=column,
+                showgrid=False,
+            )
+            fig.update_yaxes(
+                title_text='Pixel Y' if column == 1 else None,
+                autorange='reversed',
+                scaleanchor='x' if column == 1 else f'x{column}',
+                scaleratio=1,
+                row=1,
+                col=column,
+                showgrid=False,
+            )
+
+        fig.update_layout(
+            title='Spatial signal and spectral feature maps',
+            template='plotly_white',
+            height=520,
+            margin=dict(l=60, r=90, t=90, b=55),
+        )
+        return PlotlyFigure(
+            label='Spatial spectral maps',
+            figure=fig.to_plotly_json(),
+        )
+    except Exception as exc:
+        if logger:
+            logger.warning('Could not create spatial spectral maps: %s', exc)
+        return None
+
+
 def create_peak_wavelength_map(
     cube_path,
     hdr_path,
@@ -142,10 +326,7 @@ def create_peak_wavelength_map(
             read_envi_hdr,
         )
 
-        cube = np.load(
-            str(cube_path),
-            mmap_mode='r',
-        )
+        cube = _load_hyperspectral_cube(cube_path, np)
         hdr = read_envi_hdr(str(hdr_path))
         raw_wl = hdr.get('wavelength', None)
         if isinstance(raw_wl, (list, tuple)):
@@ -337,15 +518,14 @@ def create_pca_rgb_plot(
         import plotly.graph_objects as go
         from sklearn.decomposition import PCA
 
-        cube = np.load(
-            str(cube_path),
-            mmap_mode='r',
-        )
+        cube = _load_hyperspectral_cube(cube_path, np)
         # ----------------------------------
         # Downsample
         # ----------------------------------
-        cube_small = cube[::4, ::4, :]
+        cube_small, _ = _sampled_cube(cube, max_side=180)
         ny, nx, nbands = cube_small.shape
+        if nbands < PCA_COMPONENT_COUNT or ny * nx < PCA_COMPONENT_COUNT:
+            return None
         # ----------------------------------
         # Reshape for PCA
         # ----------------------------------
@@ -353,11 +533,12 @@ def create_pca_rgb_plot(
             -1,
             nbands,
         )
+        pixels = np.nan_to_num(pixels, nan=0.0, posinf=0.0, neginf=0.0)
         # ----------------------------------
         # PCA
         # ----------------------------------
         pca = PCA(
-            n_components=3,
+            n_components=PCA_COMPONENT_COUNT,
             random_state=0,
         )
         scores = pca.fit_transform(pixels)
@@ -373,16 +554,20 @@ def create_pca_rgb_plot(
         )
         for i in range(3):
             component = scores[:, i]
-            component = (component - component.min()) / (
-                component.max() - component.min() + 1e-12
-            )
+            low, high = _finite_percentile_limits(component, np, 2, 98)
+            component = np.clip((component - low) / (high - low), 0, 1)
             rgb[:, i] = component
         rgb = rgb.reshape(
             ny,
             nx,
             3,
         )
-        rgb = (rgb * 255).astype(np.uint8)
+        rgb = np.nan_to_num(
+            rgb * 255,
+            nan=0,
+            posinf=255,
+            neginf=0,
+        ).astype(np.uint8)
         # ----------------------------------
         # Plot
         # ----------------------------------
@@ -397,8 +582,10 @@ def create_pca_rgb_plot(
                 f'PC3={explained[2]:.1f}%)'
             ),
             template='plotly_white',
-            width=900,
-            height=750,
+            height=650,
+            xaxis_title='Pixel X (downsampled)',
+            yaxis_title='Pixel Y (downsampled)',
+            margin=dict(l=45, r=30, t=75, b=45),
         )
         return PlotlyFigure(
             label='PCA RGB Map',
@@ -411,6 +598,56 @@ def create_pca_rgb_plot(
                 exc,
             )
     return None
+
+
+def create_regional_spectra_plot(cube_path, hdr_path, logger=None):
+    """Compare average spectra from the four spatial quadrants."""
+    try:
+        import numpy as np
+        import plotly.graph_objects as go
+
+        cube = _load_hyperspectral_cube(cube_path, np)
+        sample, _ = _sampled_cube(cube, max_side=180)
+        wavelengths = _read_wavelengths(hdr_path, sample.shape[2], np)
+        ymid, xmid = sample.shape[0] // 2, sample.shape[1] // 2
+        regions = [
+            ('Top left', sample[:ymid, :xmid, :], '#0077b6'),
+            ('Top right', sample[:ymid, xmid:, :], '#f77f00'),
+            ('Bottom left', sample[ymid:, :xmid, :], '#2a9d8f'),
+            ('Bottom right', sample[ymid:, xmid:, :], '#9b5de5'),
+        ]
+        fig = go.Figure()
+        for name, region, color in regions:
+            if region.size == 0:
+                continue
+            mean_spectrum = np.nanmean(region.reshape(-1, region.shape[2]), axis=0)
+            fig.add_trace(
+                go.Scatter(
+                    x=wavelengths,
+                    y=mean_spectrum,
+                    mode='lines',
+                    name=name,
+                    line=dict(color=color, width=2),
+                )
+            )
+
+        fig.update_layout(
+            title='Mean spectra by image region',
+            template='plotly_white',
+            height=520,
+            xaxis_title='Wavelength (nm)',
+            yaxis_title='Signal intensity',
+            hovermode='x unified',
+            legend_title_text='Region',
+            margin=dict(l=70, r=30, t=70, b=60),
+        )
+        fig.update_xaxes(showgrid=True, zeroline=False)
+        fig.update_yaxes(showgrid=True, zeroline=False)
+        return PlotlyFigure(label='Regional spectra', figure=fig.to_plotly_json())
+    except Exception as exc:
+        if logger:
+            logger.warning('Could not create regional spectra: %s', exc)
+        return None
 
 
 def create_pca_component_maps(
@@ -1108,9 +1345,10 @@ def create_hyperspectral_overview_figures(cube_path, hdr_path, logger=None):
     figures = []
 
     for figure in (
-        create_integrated_intensity_plot(cube_path, logger),
-        create_quadrant_spectra_plot(cube_path, hdr_path, logger),
-        create_3d_integrated_surface(cube_path, logger),
+        create_mean_spectrum_plot(cube_path, hdr_path, logger),
+        create_spatial_maps_plot(cube_path, hdr_path, logger),
+        create_regional_spectra_plot(cube_path, hdr_path, logger),
+        create_pca_rgb_plot(cube_path, logger),
     ):
         if figure:
             figures.append(figure)

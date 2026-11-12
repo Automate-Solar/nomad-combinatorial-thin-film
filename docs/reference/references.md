@@ -1,44 +1,37 @@
 # References
 
-## Parser
+## Parser and editable ELN entries
 
-The main parser class is `plugin_img.parser.image_parser.DataRootParser`.
+The image, hyperspectral, and sulfurization parser entry points use NOMAD's
+`ElnParserEntryPoint`. Each matching raw-file entry links to a user-editable ELN
+entry. The ELN reads its source files on the first processing pass, preserves
+manual edits on ordinary saves, and provides a **Reload from source** action to
+replace source-derived values and regenerate plots.
 
-It exports the following behavior:
-
-- `parse(mainfile, archive, logger)` — parse a sample folder and write `archive.data`
-- `_find_synthesis_json(data_root)` — locate sample-level JSON metadata
-- `_parse_image_folder(image_folder, data_root, log)` — parse one image experiment folder
-- `_convert_npy_to_png(npy_path, log)` — generate a preview image from a raw NPY array
-
-## Schema package
+## Schema packages
 
 The plugin registers separate parser and schema entry points for each data type:
 
-- `plugin_img.parser:image_parser_entry_point`
-- `plugin_img.parser:hyperspectral_parser_entry_point`
-- `plugin_img.plugin:image_schema_package_entry_point`
-- `plugin_img.plugin:hyperspectral_schema_package_entry_point`
+- `image_parser` and `image_schema`
+- `hyperspectral_parser` and `hyperspectral_schema`
+- `sulfurization_parser` and `sulfurization_schema`
 
-The schema package is defined in `plugin_img.plugin.image_plugin.m_package` and contains image analysis sections for:
+Image schema sections include `ImageDataset`, `ImageExperimentRun`,
+`ImageMetadata`, `ImageData`, `ImageDimensions`, `RegionOfInterest`,
+`BoundingBox`, and `ImageVisualization`.
 
-- `ImageDataset`
-- `ImageExperimentRun`
-- `ImageMetadata`
-- `ImageData`
-- `ImageDimensions`
-- `RegionOfInterest`
-- `BoundingBox`
-- `ImageVisualization`
-
-## Sample data layout
+## Image sample data layout
 
 Supported files and folders include:
 
-- `synthesis.json` — sample-level synthesis or experiment conditions
-- `metadata.json` — per-experiment image metadata
-- `image_raw.npy` — raw image array data
-- `image_preview.png` — preview image for visualization
-- `manifest.csv` — legacy experiment manifest data
+- `synthesis.json` for sample-level synthesis or experiment conditions
+- `metadata.json` for per-experiment image metadata
+- `image_raw.npy` for raw image array data
+- `image_preview.png` for an image preview
+- `manifest.csv` for legacy experiment manifest data
 
+## Hyperspectral source files
 
+The hyperspectral parser matches an ENVI `.hdr` file and reads its associated
+BIL data file. The linked ELN entry stores acquisition and cube metadata,
+references to source and generated files, and analysis plots.

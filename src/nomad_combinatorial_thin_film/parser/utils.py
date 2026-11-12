@@ -59,8 +59,11 @@ def read_envi_hdr(path):
     """
     metadata = {}
 
-    with open(path) as f:
-        lines = f.readlines()
+    if hasattr(path, 'read'):
+        lines = path.readlines()
+    else:
+        with open(path) as file:
+            lines = file.readlines()
 
     key = None
     collecting = False
@@ -112,7 +115,10 @@ def read_bil(path, lines, samples, bands, dtype):
     ndarray
         Data array with shape (lines, samples, bands)
     """
-    data = np.fromfile(path, dtype=dtype)
+    if hasattr(path, 'read'):
+        data = np.frombuffer(path.read(), dtype=dtype)
+    else:
+        data = np.fromfile(path, dtype=dtype)
 
     expected = lines * samples * bands
     if data.size != expected:
@@ -816,7 +822,10 @@ def normalize_array(array: np.ndarray) -> np.ndarray:
 
 
 def parse_image_folder(
-    image_folder: Path, data_root: Path, log
+    image_folder: Path,
+    data_root: Path,
+    log,
+    upload_root: Path | None = None,
 ) -> ImageExperimentRun | None:
     metadata_path = find_metadata_file(image_folder)
     manifest_path = image_folder / 'manifest.csv'
@@ -849,7 +858,8 @@ def parse_image_folder(
             experiment.image = ImageData()
 
         if npy_path:
-            experiment.image.image_array = relative_upload_path(npy_path, data_root)
+            path_root = upload_root or data_root
+            experiment.image.image_array = relative_upload_path(npy_path, path_root)
             if experiment.image.dimensions is None:
                 experiment.image.dimensions = dimensions_from_npy(
                     npy_path, metadata_dict, log
@@ -861,7 +871,7 @@ def parse_image_folder(
             preview_path = convert_npy_to_png(npy_path, log)
 
         if preview_path:
-            preview_ref = relative_upload_path(preview_path, data_root)
+            preview_ref = relative_upload_path(preview_path, upload_root or data_root)
             experiment.image.image_preview = preview_ref
             experiment.image.visualization = ImageVisualization()
             experiment.image.visualization.image_file = preview_ref
@@ -936,7 +946,11 @@ def find_bil_file(folder: Path, hdr_file: Path | None = None) -> Path | None:
 def extract_wavelengths(hdr) -> np.ndarray:
     values = hdr['wavelength']
     values = values.strip('{}')
-    return np.array([float(v) for v in values.split(',')])
+    wavelengths = np.array([float(value) for value in values.split(',')])
+    wavelength_unit = str(hdr.get('wavelength units', '')).strip().lower()
+    if wavelength_unit in {'um', 'µm', 'μm', 'micron', 'microns', 'micrometer', 'micrometers'}:
+        wavelengths *= 1000
+    return wavelengths
 
 
 def nearest_band(wavelengths, wavelength):
@@ -986,34 +1000,61 @@ def create_npy(folder: Path, cube: np.ndarray) -> Path:
     return npy_path
 
 
-def create_rgb_preview(
-    folder: Path, cube: np.ndarray, wavelengths: np.ndarray, log
-) -> Path | None:
+def create_rgb_preview_image(cube: np.ndarray, wavelengths: np.ndarray, log):
+    """Return a contrast-stretched visible-band preview for an ENVI cube."""
     try:
         r = nearest_band(wavelengths, 650)
         g = nearest_band(wavelengths, 550)
         b = nearest_band(wavelengths, 450)
 
-        rgb = np.stack(
+        rgb_data = np.stack(
             [cube[:, :, r], cube[:, :, g], cube[:, :, b]],
             axis=-1,
         ).astype(np.float32)
-        rgb /= rgb.max() + 1e-9
-        rgb = (rgb * 255).astype(np.uint8)
+        rgb = np.zeros_like(rgb_data, dtype=np.uint8)
+        for channel_index in range(rgb_data.shape[-1]):
+            channel = rgb_data[:, :, channel_index]
+            finite = channel[np.isfinite(channel)]
+            if finite.size == 0:
+                continue
+            low, high = np.percentile(finite, [2, 98])
+            if high <= low:
+                high = low + 1
+            stretched = np.clip((channel - low) / (high - low), 0, 1)
+            rgb[:, :, channel_index] = np.nan_to_num(
+                stretched * 255,
+                nan=0,
+                posinf=255,
+                neginf=0,
+            ).astype(np.uint8)
 
-        preview_path = folder / 'rgb_preview.png'
-        Image.fromarray(rgb).save(preview_path)
-        return preview_path
+        return Image.fromarray(rgb)
 
     except Exception as exc:
         log.warning('Could not create RGB preview: %s', exc)
         return None
 
 
+def create_rgb_preview(
+    folder: Path, cube: np.ndarray, wavelengths: np.ndarray, log
+) -> Path | None:
+    """Create and save a contrast-stretched visible-band preview."""
+    preview = create_rgb_preview_image(cube, wavelengths, log)
+    if preview is None:
+        return None
+
+    preview_path = folder / 'rgb_preview.png'
+    preview.save(preview_path)
+    return preview_path
+
+
 def parse_hyperspectral_folder(
-    folder: Path, root: Path, log
+    folder: Path,
+    root: Path,
+    log,
+    hdr_file: Path | None = None,
 ) -> HyperspectralMeasurement | None:
-    hdr_file = find_hdr_file(folder)
+    hdr_file = hdr_file or find_hdr_file(folder)
     bil_file = find_bil_file(folder, hdr_file)
 
     if hdr_file is None or bil_file is None:

@@ -1,6 +1,9 @@
-# How to Use This Plugin
+# How to Use the Image and Hyperspectral Plugins
 
-The `plugin-img` parser reads image dataset folders and generates NOMAD entry data from image metadata and preview files.
+The image and hyperspectral parsers use NOMAD's hybrid ELN workflow. Uploading a
+matching source file creates a raw-file entry and a linked editable ELN entry.
+The ELN entry reads the source files on its first processing pass. Later saves
+preserve manual edits and refresh the plots from the current entry values.
 
 ## Supported folder layout
 
@@ -25,16 +28,21 @@ Supported file names include:
 - `manifest.csv`
 - `synthesis.json`
 
-The parser creates one `ImageDataset` entry and one `ImageExperimentRun` per valid image folder.
+The image ELN entry contains one `ImageExperimentRun` per valid image folder.
 
-## How to run the parser
+## Editing and reloading data
 
-Use NOMAD's parser invocation from your development environment or the `nomad` CLI that loads plugins.
-In the plugin package, the parser class is `plugin_img.parser.image_parser.DataRootParser`.
+Edit quantities in the linked ELN entry and save it to preserve those edits. Use
+the **Reload from source** action to replace source-derived quantities from the
+uploaded files and regenerate previews and plots. User notes are kept when reloading.
+
+The hyperspectral parser matches an ENVI `.hdr` file and reads its associated BIL
+file. Each linked ELN entry contains the metadata, cube references, RGB preview,
+and analysis plots for that measurement.
 
 ## Fallback behavior
 
-If a sample folder contains no image data but does contain sample metadata such as `synthesis.json`, the plugin still creates a NOMAD entry with the experimental details.
+If a sample folder contains no image data but does contain sample metadata such as `synthesis.json`, the plugin still creates an editable ELN entry with the experimental details.
 
 This ensures that the sample is not dropped entirely during parsing.
 

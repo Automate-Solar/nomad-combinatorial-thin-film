@@ -43,11 +43,16 @@ from nomad_measurements.xrd.schema import (
 )
 from structlog.stdlib import BoundLogger
 
+from nomad_combinatorial_thin_film.categories import Uppsala
+
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import EntryArchive
     from structlog.stdlib import BoundLogger
 
-m_package = Package(name='DTU XRD measurement schema')
+m_package = Package(
+    name='DTU XRD measurement schema',
+    categories=[Uppsala],
+)
 
 
 class XRDMappingResult(MappingResult, XRDResult1D):  # , PlotSection
@@ -67,7 +72,7 @@ class XRDMappingResult(MappingResult, XRDResult1D):  # , PlotSection
 
 class DTUXRDMeasurement(XRayDiffraction, DtuNanolabMeasurement, PlotSection, Schema):
     m_def = Section(
-        categories=[DTUNanolabCategory],
+        categories=[DTUNanolabCategory, Uppsala],
         links=['http://purl.obolibrary.org/obo/CHMO_0001294'],
         label='XRD Measurement',
     )

@@ -86,17 +86,19 @@ sulfurization_schema_package_entry_point = SulfurizationSchemaPackageEntryPoint(
 )
 
 
-class XRDSchemaPackageEntryPoint(SchemaPackageEntryPoint):
+
+class RTPSchemaPackageEntryPoint(SchemaPackageEntryPoint):
     def load(self):
-        from nomad_combinatorial_thin_film.plugin.xrd import m_package
+        from nomad_combinatorial_thin_film.plugin.rtp import m_package
 
         return m_package
 
 
-xrd_schema_package_entry_point = XRDSchemaPackageEntryPoint(
-    name='XRDSchema',
+rtp_schema_package_entry_point = RTPSchemaPackageEntryPoint(
+    name="UppsalaRTPPlugin",
     description=(
-        'Schema for spatially resolved XRD measurements '
-        'and experimental peak detection.'
+        "Schema package for rapid thermal processing experiments, "
+        "temperature programs, and process time-series data."
     ),
 )
+

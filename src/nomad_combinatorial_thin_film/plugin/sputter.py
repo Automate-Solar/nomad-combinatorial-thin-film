@@ -23,7 +23,7 @@ from nomad_dtu_nanolab_plugin.schema_packages.sputtering import (
     DTUSputtering,
 )
 
-m_package = Package()
+m_package = Package(categories=[Uppsala])
 
 
 class UppsalaSputteringInstruments(InstrumentReference, ArchiveSection):

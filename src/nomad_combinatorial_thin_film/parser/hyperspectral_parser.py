@@ -65,8 +65,7 @@ def _find_bil_upload_path(context, hdr_path):
     if len(candidates) == 1:
         return candidates[0]
     raise FileNotFoundError(
-        f'Could not identify the BIL file for {hdr_path!r}; '
-        f'found {candidates!r}.'
+        f'Could not identify the BIL file for {hdr_path!r}; found {candidates!r}.'
     )
 
 
@@ -132,9 +131,9 @@ def _build_hyperspectral_dataset_from_context(hdr_path, context, log):
         wavelengths,
         log,
     )
-    measurement.label = PurePosixPath(hdr_path).parent.name or PurePosixPath(
-        hdr_path
-    ).stem
+    measurement.label = (
+        PurePosixPath(hdr_path).parent.name or PurePosixPath(hdr_path).stem
+    )
 
     dataset = HyperspectralDataset()
     dataset.name = f'Hyperspectral Dataset - {measurement.label}'

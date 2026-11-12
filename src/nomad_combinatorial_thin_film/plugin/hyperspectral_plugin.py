@@ -404,7 +404,7 @@ class HyperspectralDataset(PlotSection, ElnParserSection):
                     'measurements',
                 ]
             )
-        )
+        ),
     )
 
     name = Quantity(

@@ -46,7 +46,9 @@ def load_existing_sulfurization_run(archive, logger=None):
         return None
 
     if not isinstance(previous_data, dict) or not previous_data:
-        log.info('The previous archive has no sulfurization data; parsing the PLW file.')
+        log.info(
+            'The previous archive has no sulfurization data; parsing the PLW file.'
+        )
         return None
 
     try:

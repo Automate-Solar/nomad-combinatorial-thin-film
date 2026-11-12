@@ -16,9 +16,7 @@ image_parser_entry_point = PortableElnParserEntryPoint(
     name='ImageParser',
     description='Parser for image datasets with metadata, ROI, and dimensions.',
     mainfile_name_re=r'.*(synthesis\.json)$',
-    eln_m_def=(
-        'nomad_combinatorial_thin_film.plugin.image_plugin.ImageDataset'
-    ),
+    eln_m_def=('nomad_combinatorial_thin_film.plugin.image_plugin.ImageDataset'),
     data_type='RGB image dataset',
 )
 
@@ -28,8 +26,7 @@ hyperspectral_parser_entry_point = PortableElnParserEntryPoint(
     description='Parser for hyperspectral ENVI datasets with .hdr/.bil cube files.',
     mainfile_name_re=r'.*(\.hdr)$',
     eln_m_def=(
-        'nomad_combinatorial_thin_film.plugin.hyperspectral_plugin.'
-        'HyperspectralDataset'
+        'nomad_combinatorial_thin_film.plugin.hyperspectral_plugin.HyperspectralDataset'
     ),
     data_type='Hyperspectral ENVI dataset',
 )
@@ -61,9 +58,7 @@ sulfurization_parser_entry_point = PortableElnParserEntryPoint(
         'holding-period detection and temperature stability analysis.'
     ),
     mainfile_name_re=r'(?i).*\.plw$',
-    eln_m_def=(
-        'nomad_combinatorial_thin_film.plugin.sulfurization.SulfurizationRun'
-    ),
+    eln_m_def=('nomad_combinatorial_thin_film.plugin.sulfurization.SulfurizationRun'),
     data_type='Sulfurization measurement',
 )
 
@@ -88,7 +83,6 @@ xrd_parser_entry_point = XRDParserEntryPoint(
 )
 
 
-
 class RTPParserEntryPoint(ParserEntryPoint):
     def load(self):
         from nomad_combinatorial_thin_film.parser.rtp_parser import (
@@ -99,12 +93,11 @@ class RTPParserEntryPoint(ParserEntryPoint):
 
 
 rtp_parser_entry_point = RTPParserEntryPoint(
-    name="RTPParser",
+    name='RTPParser',
     description=(
-        "Parser for rapid thermal processing JSON files "
-        "containing process metadata and time-series measurements."
+        'Parser for rapid thermal processing JSON files '
+        'containing process metadata and time-series measurements.'
     ),
-    mainfile_name_re=r".*\.json$",
+    mainfile_name_re=r'.*\.json$',
     mainfile_contents_re=r'"run_id"\s*:',
 )
-

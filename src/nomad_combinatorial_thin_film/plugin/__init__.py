@@ -86,7 +86,6 @@ sulfurization_schema_package_entry_point = SulfurizationSchemaPackageEntryPoint(
 )
 
 
-
 class RTPSchemaPackageEntryPoint(SchemaPackageEntryPoint):
     def load(self):
         from nomad_combinatorial_thin_film.plugin.rtp import m_package
@@ -95,10 +94,9 @@ class RTPSchemaPackageEntryPoint(SchemaPackageEntryPoint):
 
 
 rtp_schema_package_entry_point = RTPSchemaPackageEntryPoint(
-    name="UppsalaRTPPlugin",
+    name='UppsalaRTPPlugin',
     description=(
-        "Schema package for rapid thermal processing experiments, "
-        "temperature programs, and process time-series data."
+        'Schema package for rapid thermal processing experiments, '
+        'temperature programs, and process time-series data.'
     ),
 )
-

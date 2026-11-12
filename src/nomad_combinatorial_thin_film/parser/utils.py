@@ -948,7 +948,15 @@ def extract_wavelengths(hdr) -> np.ndarray:
     values = values.strip('{}')
     wavelengths = np.array([float(value) for value in values.split(',')])
     wavelength_unit = str(hdr.get('wavelength units', '')).strip().lower()
-    if wavelength_unit in {'um', 'µm', 'μm', 'micron', 'microns', 'micrometer', 'micrometers'}:
+    if wavelength_unit in {
+        'um',
+        'µm',
+        'μm',
+        'micron',
+        'microns',
+        'micrometer',
+        'micrometers',
+    }:
         wavelengths *= 1000
     return wavelengths
 

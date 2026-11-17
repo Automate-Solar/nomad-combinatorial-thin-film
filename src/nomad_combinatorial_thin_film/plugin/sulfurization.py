@@ -14,7 +14,6 @@ from nomad.metainfo import Datetime, Package, Quantity, Section, SubSection
 
 from nomad_combinatorial_thin_film.categories import Uppsala
 from nomad_combinatorial_thin_film.plugin.eln_utils import (
-    get_source_path,
     replace_section_data,
 )
 
@@ -558,11 +557,38 @@ class SulfurizationRun(ElnParserSection, PlotSection):
             logger.warning('No source PLW file is assigned; cannot reload data.')
             return
 
+        from pathlib import Path
+
+        from nomad_combinatorial_thin_film.parser.archive_utils import (
+            normalize_raw_path,
+        )
         from nomad_combinatorial_thin_film.parser.sulfurization_parser import (
             build_sulfurization_run,
         )
 
-        source_path = get_source_path(archive, self.data_file)
+        source_path = Path(archive.m_context.raw_path()) / normalize_raw_path(
+            self.data_file
+        )
+        if (
+            str(self.data_file)
+            .lower()
+            .endswith(('.zip', '.sulfurzip', '.sulferzip', '.sulfurizationzip'))
+        ):
+            from nomad_combinatorial_thin_film.parser.archive_utils import (
+                extract_zip_to_upload,
+            )
+
+            extracted_files = extract_zip_to_upload(
+                archive.m_context,
+                self.data_file,
+            )
+            plw_files = [
+                path for path in extracted_files if path.suffix.lower() == '.plw'
+            ]
+            if not plw_files:
+                logger.error('Sulfurization archive contains no PLW file.')
+                return
+            source_path = plw_files[0]
         parsed_run = build_sulfurization_run(source_path, logger)
         if parsed_run is None:
             return

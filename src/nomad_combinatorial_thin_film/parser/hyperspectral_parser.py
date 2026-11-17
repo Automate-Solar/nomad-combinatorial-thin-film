@@ -142,14 +142,56 @@ def _build_hyperspectral_dataset_from_context(hdr_path, context, log):
     return dataset
 
 
+def _build_hyperspectral_dataset_from_zip(source, context, log):
+    from nomad_combinatorial_thin_film.parser.archive_utils import (
+        extract_zip_to_upload,
+    )
+
+    extracted_files = extract_zip_to_upload(context, source)
+    hdr_files = [path for path in extracted_files if path.suffix.lower() == '.hdr']
+    raw_root = Path(context.raw_path())
+    measurements = []
+    for hdr_file in hdr_files:
+        measurement = parse_hyperspectral_folder(
+            hdr_file.parent,
+            raw_root,
+            log,
+            hdr_file=hdr_file,
+        )
+        if measurement is not None:
+            measurements.append(measurement)
+    for measurement in measurements:
+        if measurement.raw_data is None:
+            continue
+        for generated_path in (
+            measurement.raw_data.cube_npy,
+            measurement.raw_data.rgb_preview,
+        ):
+            if generated_path:
+                try:
+                    context.process_updated_raw_file(
+                        generated_path,
+                        allow_modify=True,
+                    )
+                except NotImplementedError:
+                    pass
+    dataset = HyperspectralDataset()
+    dataset.name = f'Hyperspectral Dataset - {Path(str(source)).stem}'
+    dataset.measurements = measurements
+    dataset.figures = collect_dataset_figures(measurements)
+    return dataset
+
+
 def build_hyperspectral_dataset(
     source: Path,
     log,
     upload_root: Path | None = None,
     context=None,
 ) -> HyperspectralDataset:
-    """Build a dataset from the selected ENVI header and its matching BIL file."""
+    """Build a dataset from ENVI files or a ZIP containing ENVI files."""
     if context is not None:
+        if str(source).lower().endswith(('.zip', '.hyperzip')):
+            return _build_hyperspectral_dataset_from_zip(source, context, log)
         return _build_hyperspectral_dataset_from_context(source, context, log)
 
     source = Path(source)

@@ -4,6 +4,8 @@ from pathlib import Path
 
 from nomad.parsing.parser import ElnMatchingParser
 
+from nomad_combinatorial_thin_film.parser.archive_utils import archive_has_members
+
 
 class PortableElnMatchingParser(ElnMatchingParser):
     """ElnMatchingParser variant that handles Windows and POSIX raw paths."""
@@ -56,3 +58,47 @@ class PortableElnMatchingParser(ElnMatchingParser):
             data = content.get('data', {})
             data.update(self.eln_section(mainfile, archive))
             content['data'] = data
+
+
+class ArchiveAwareElnMatchingParser(PortableElnMatchingParser):
+    """ELN matcher that accepts supported ZIP files by their contents."""
+
+    def is_mainfile(
+        self,
+        filename,
+        mime,
+        buffer,
+        decoded_buffer,
+        compression=None,
+    ):
+        normalized_filename = str(filename).replace('\\', '/').lower()
+        if '/__nomad_extracted__/' in normalized_filename:
+            return False
+
+        if normalized_filename.endswith(
+            (
+                '.zip',
+                '.imagezip',
+                '.hyperzip',
+                '.sulfurzip',
+                '.sulferzip',
+                '.sulfurizationzip',
+            )
+        ):
+            if self._mainfile_name_re.fullmatch(filename) is None:
+                return False
+            section_name = str(self.eln_m_def).rsplit('.', 1)[-1]
+            kind = {
+                'ImageDataset': 'image',
+                'HyperspectralDataset': 'hyperspectral',
+                'SulfurizationRun': 'sulfurization',
+            }.get(section_name)
+            return bool(kind and archive_has_members(filename, kind))
+
+        return super().is_mainfile(
+            filename,
+            mime,
+            buffer,
+            decoded_buffer,
+            compression,
+        )

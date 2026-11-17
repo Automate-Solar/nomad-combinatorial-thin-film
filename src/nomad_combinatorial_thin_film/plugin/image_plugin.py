@@ -29,7 +29,6 @@ from nomad.metainfo import Package, Quantity, Section, SubSection
 import nomad_combinatorial_thin_film.plugin.utils as plu
 from nomad_combinatorial_thin_film.categories import Uppsala
 from nomad_combinatorial_thin_film.plugin.eln_utils import (
-    get_source_path,
     register_derived_upload_file,
     replace_section_data,
 )
@@ -699,11 +698,34 @@ class ImageDataset(PlotSection, ElnParserSection):
             logger.warning('No source image file is assigned; cannot reload data.')
             return
 
+        from nomad_combinatorial_thin_film.parser.archive_utils import (
+            normalize_raw_path,
+        )
         from nomad_combinatorial_thin_film.parser.image_parser import (
             build_image_dataset,
         )
 
-        source_path = get_source_path(archive, self.data_file)
+        source_path = Path(archive.m_context.raw_path()) / normalize_raw_path(
+            self.data_file
+        )
+        if str(self.data_file).lower().endswith(('.zip', '.imagezip')):
+            from nomad_combinatorial_thin_film.parser.archive_utils import (
+                extract_zip_to_upload,
+            )
+
+            extracted_files = extract_zip_to_upload(
+                archive.m_context,
+                self.data_file,
+            )
+            synthesis_files = [
+                path
+                for path in extracted_files
+                if path.name.lower() == 'synthesis.json'
+            ]
+            if not synthesis_files:
+                logger.error('Image archive contains no synthesis.json file.')
+                return
+            source_path = synthesis_files[0]
         parsed_dataset = build_image_dataset(
             source_path.parent,
             logger,

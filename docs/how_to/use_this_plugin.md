@@ -40,6 +40,10 @@ The hyperspectral parser matches an ENVI `.hdr` file and reads its associated BI
 file. Each linked ELN entry contains the metadata, cube references, RGB preview,
 and analysis plots for that measurement.
 
+Both parsers also accept `.zip` archives when the archive contains the expected
+source files. Use `.imagezip` or `.hyperzip` when an upload service automatically
+extracts files ending in `.zip`.
+
 ## Fallback behavior
 
 If a sample folder contains no image data but does contain sample metadata such as `synthesis.json`, the plugin still creates an editable ELN entry with the experimental details.

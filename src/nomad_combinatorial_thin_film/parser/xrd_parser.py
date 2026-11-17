@@ -9,13 +9,13 @@ from pathlib import Path
 
 import numpy as np
 from nomad.datamodel import EntryArchive
-from nomad.parsing.parser import MatchingParser
 from scipy.signal import (
     find_peaks,
     peak_widths,
     savgol_filter,
 )
 
+from nomad_combinatorial_thin_film.parser.archive_utils import ZipAwareMatchingParser
 from nomad_combinatorial_thin_film.plugin.xrd import (
     XRDPattern,
     XRDPeak,
@@ -834,8 +834,11 @@ def create_xrd_run(
 # ============================================================
 
 
-class XRDParser(MatchingParser):
+class XRDParser(ZipAwareMatchingParser):
     """Parser for spatially resolved ASC and XRDML measurements."""
+
+    archive_kind = 'xrd'
+    archive_extensions = ('.zip', '.xrdzip')
 
     def parse(
         self,

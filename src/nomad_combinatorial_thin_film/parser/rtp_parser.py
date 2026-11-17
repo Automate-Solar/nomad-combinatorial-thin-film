@@ -8,8 +8,11 @@ from pathlib import Path
 
 import numpy as np
 from nomad.datamodel import EntryArchive
-from nomad.parsing import MatchingParser
 
+from nomad_combinatorial_thin_film.parser.archive_utils import (
+    ZipAwareMatchingParser,
+    read_zip_member,
+)
 from nomad_combinatorial_thin_film.plugin.rtp import (
     RTPChannel,
     RTPProgramStep,
@@ -100,8 +103,11 @@ def load_existing_rtp_run(archive, logger=None):
 def read_rtp_json(filename):
     """Read and validate an RTP JSON file."""
 
-    with open(filename, encoding='utf-8') as file:
-        data = json.load(file)
+    if isinstance(filename, dict):
+        data = filename
+    else:
+        with open(filename, encoding='utf-8') as file:
+            data = json.load(file)
 
     required = [
         'sample_id',
@@ -398,8 +404,11 @@ def create_rtp_run(filename, data):
 # ============================================================
 
 
-class RTPParser(MatchingParser):
+class RTPParser(ZipAwareMatchingParser):
     """Parser for rapid thermal processing JSON log files."""
+
+    archive_kind = 'rtp'
+    archive_extensions = ('.zip', '.rtpzip')
 
     def parse(
         self,
@@ -427,7 +436,17 @@ class RTPParser(MatchingParser):
         )
 
         # Read original JSON.
-        data = read_rtp_json(mainfile)
+        if str(mainfile).lower().endswith(self.archive_extensions):
+            data = json.loads(
+                read_zip_member(
+                    mainfile,
+                    '.json',
+                    contains=b'"run_id"',
+                ).decode('utf-8')
+            )
+        else:
+            data = mainfile
+        data = read_rtp_json(data)
 
         # Decode and populate NOMAD schema.
         run = create_rtp_run(

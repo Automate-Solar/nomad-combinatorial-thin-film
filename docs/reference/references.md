@@ -35,3 +35,12 @@ Supported files and folders include:
 The hyperspectral parser matches an ENVI `.hdr` file and reads its associated
 BIL data file. The linked ELN entry stores acquisition and cube metadata,
 references to source and generated files, and analysis plots.
+
+The image and hyperspectral parsers also accept ZIP archives containing their
+expected source files. Their archive extensions are `.imagezip` and `.hyperzip`.
+The sulfurization parser accepts `.zip`, `.sulferzip`, `.sulfurzip`, and
+`.sulfurizationzip` archives containing a PLW file. RTP archives use `.zip` or
+`.rtpzip`; experiment-plan archives use `.zip`, `.planzip`, `.experimentzip`, or
+`.experimentplanzip`. Generic `.zip` files are
+matched by inspecting their contents so they do not get claimed by unrelated
+parsers.

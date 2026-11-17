@@ -7,8 +7,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from nomad.parsing.parser import MatchingParser
-
+from nomad_combinatorial_thin_film.parser.archive_utils import (
+    ZipAwareMatchingParser,
+    read_zip_member,
+)
 from nomad_combinatorial_thin_film.plugin.experiment_plan import (
     ExperimentRecipe,
     ExperimentSystemState,
@@ -199,14 +201,25 @@ def parse_experiment_plan_document(text: str) -> SputteringExperimentPlan:
     return plan
 
 
-class ExperimentPlanParser(MatchingParser):
+class ExperimentPlanParser(ZipAwareMatchingParser):
     """NOMAD parser for a Mongo-shell text export named experiment_plan.txt."""
+
+    archive_kind = 'experiment_plan'
+    archive_extensions = (
+        '.zip',
+        '.planzip',
+        '.experimentzip',
+        '.experimentplanzip',
+    )
 
     def parse(self, mainfile, archive, logger=None, child_archives=None) -> None:
         log = logger or logger_module
         if archive.data is not None:
             log.debug('Archive already has data, skipping experiment-plan parse')
             return
-        text = Path(mainfile).read_text(encoding='utf-8')
+        if str(mainfile).lower().endswith(self.archive_extensions):
+            text = read_zip_member(mainfile, 'experiment_plan.txt').decode('utf-8')
+        else:
+            text = Path(mainfile).read_text(encoding='utf-8')
         archive.data = parse_experiment_plan_document(text)
         log.info('Parsed sputtering experiment plan for %s', archive.data.sample_id)
